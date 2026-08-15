@@ -12,7 +12,6 @@ class Amenity extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'name',
         'slug',
         'icon',
@@ -27,11 +26,6 @@ class Amenity extends Model
         return [
             'is_default' => 'boolean',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodations(): BelongsToMany

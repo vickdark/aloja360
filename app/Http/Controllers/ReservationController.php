@@ -42,7 +42,6 @@ class ReservationController extends Controller
         }
 
         $reservations = Reservation::with(['accommodation', 'primaryGuest'])
-            ->where('business_id', $businessId)
             ->orderBy('check_in_date', 'asc')
             ->paginate(20);
 
@@ -50,7 +49,7 @@ class ReservationController extends Controller
             return response()->json($reservations);
         }
 
-        return view('reservations.index', compact('reservations', 'businessId'));
+        return view('reservations.index', compact('reservations'));
     }
 
     public function store(StoreReservationRequest $request, CreateReservationAction $action): JsonResponse

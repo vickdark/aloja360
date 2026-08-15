@@ -41,16 +41,20 @@ class AccommodationController extends Controller
             return response()->json($accommodations);
         }
 
-        return view('accommodations.index', compact('accommodations', 'businessId'));
+        return view('accommodations.index', compact('accommodations'));
     }
 
-    public function show(Accommodation $accommodation): JsonResponse
+    public function show(Accommodation $accommodation)
     {
         $this->authorize('view', $accommodation);
 
         $accommodation->load(['amenities', 'ratePeriods', 'blockedPeriods']);
 
-        return response()->json($accommodation);
+        if (request()->wantsJson()) {
+            return response()->json($accommodation);
+        }
+        
+        return view('accommodations.show', compact('accommodation'));
     }
 
     /**
@@ -59,7 +63,6 @@ class AccommodationController extends Controller
     public function available(Request $request, AvailabilityService $availabilityService): JsonResponse
     {
         $request->validate([
-            'business_id' => 'required|integer',
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
         ]);
@@ -74,7 +77,6 @@ class AccommodationController extends Controller
         }
 
         $availableAccommodations = $availabilityService->getAvailableAccommodations(
-            $businessId,
             $request->input('check_in_date'),
             $request->input('check_out_date')
         );

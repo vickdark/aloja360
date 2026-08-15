@@ -55,12 +55,11 @@ class AvailabilityService
     }
 
     /**
-     * Obtiene todos los alojamientos disponibles en un negocio para las fechas dadas.
+     * Obtiene todos los alojamientos disponibles para las fechas dadas.
      */
-    public function getAvailableAccommodations(int $businessId, string $checkInDate, string $checkOutDate, ?int $excludeReservationId = null): Collection
+    public function getAvailableAccommodations(string $checkInDate, string $checkOutDate, ?int $excludeReservationId = null): Collection
     {
-        return Accommodation::where('business_id', $businessId)
-            ->where('is_active', true)
+        return Accommodation::where('is_active', true)
             ->whereDoesntHave('reservations', function (Builder $query) use ($checkInDate, $checkOutDate, $excludeReservationId) {
                 $query->whereIn('status', [
                     ReservationStatus::Pending->value,

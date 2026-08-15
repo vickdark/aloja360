@@ -13,7 +13,6 @@ class Quote extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'code',
         'status',
         'accommodation_id',
@@ -59,11 +58,6 @@ class Quote extends Model
             'expires_at' => 'datetime',
             'sent_at' => 'datetime',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

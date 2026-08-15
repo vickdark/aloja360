@@ -30,18 +30,10 @@ class StoreReservationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'business_id' => ['required', 'integer', 'exists:businesses,id'],
             'accommodation_id' => [
                 'required',
                 'integer',
                 'exists:accommodations,id',
-                // Asegurarse de que el alojamiento pertenezca al mismo negocio
-                function ($attribute, $value, $fail) {
-                    $accommodation = Accommodation::find($value);
-                    if ($accommodation && $accommodation->business_id != $this->input('business_id')) {
-                        $fail('El alojamiento no pertenece al negocio especificado.');
-                    }
-                },
             ],
             'primary_guest_id' => ['required', 'integer', 'exists:guests,id'],
             'check_in_date' => ['required', 'date', 'after_or_equal:today'],

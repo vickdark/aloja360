@@ -42,7 +42,6 @@ class CheckInReservationAction
             Stay::firstOrCreate(
                 ['reservation_id' => $reservation->id],
                 [
-                    'business_id' => $reservation->business_id,
                     'accommodation_id' => $reservation->accommodation_id,
                     'primary_guest_id' => $reservation->primary_guest_id,
                     'check_in_at' => $now,

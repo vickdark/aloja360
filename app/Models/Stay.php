@@ -12,7 +12,6 @@ class Stay extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'reservation_id',
         'accommodation_id',
         'primary_guest_id',
@@ -46,11 +45,6 @@ class Stay extends Model
             'keys_issued' => 'array',
             'vehicle_info' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function reservation(): BelongsTo

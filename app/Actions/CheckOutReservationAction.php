@@ -49,7 +49,6 @@ class CheckOutReservationAction
 
             // Crear tarea de limpieza
             CleaningTask::create([
-                'business_id' => $reservation->business_id,
                 'accommodation_id' => $reservation->accommodation_id,
                 'reservation_id' => $reservation->id,
                 'stay_id' => $reservation->stay?->id,

@@ -16,7 +16,6 @@ class Accommodation extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'business_id',
         'code',
         'name',
         'slug',
@@ -54,11 +53,6 @@ class Accommodation extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function amenities(): BelongsToMany

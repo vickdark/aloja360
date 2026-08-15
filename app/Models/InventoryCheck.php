@@ -13,7 +13,6 @@ class InventoryCheck extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'accommodation_id',
         'reservation_id',
         'stay_id',
@@ -41,11 +40,6 @@ class InventoryCheck extends Model
             'charge_to_guest' => 'boolean',
             'photos' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

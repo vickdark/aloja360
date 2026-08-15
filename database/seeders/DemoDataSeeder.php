@@ -38,13 +38,9 @@ class DemoDataSeeder extends Seeder
                     'name' => $data['name'],
                     'role_id' => $role?->id,
                     'password' => bcrypt('password123'),
-                    'current_business_id' => $business->id,
                     'email_verified_at' => now(),
                 ]
             );
-            $business->users()->syncWithoutDetaching([
-                $user->id => ['role_id' => $role?->id],
-            ]);
         }
 
         $cabinTypes = [
@@ -62,7 +58,6 @@ class DemoDataSeeder extends Seeder
             Accommodation::firstOrCreate(
                 ['code' => $code],
                 [
-                    'business_id' => $business->id,
                     'name' => $name,
                     'slug' => \Str::slug($name),
                     'type' => $type,
@@ -82,8 +77,8 @@ class DemoDataSeeder extends Seeder
             );
         }
 
-        $allAmenities = Amenity::where('business_id', $business->id)->get();
-        Accommodation::where('business_id', $business->id)->each(function ($acc) use ($allAmenities) {
+        $allAmenities = Amenity::all();
+        Accommodation::all()->each(function ($acc) use ($allAmenities) {
             $selectedAmenities = $allAmenities->random(min(8, $allAmenities->count()));
             $syncData = [];
             foreach ($selectedAmenities as $amenity) {
@@ -105,10 +100,10 @@ class DemoDataSeeder extends Seeder
             ['Nevera', 'Cocina', 1],
         ];
 
-        Accommodation::where('business_id', $business->id)->each(function ($acc) use ($defaultInventory, $business) {
+        Accommodation::all()->each(function ($acc) use ($defaultInventory, $business) {
             foreach ($defaultInventory as [$name, $category, $qty]) {
                 InventoryItem::firstOrCreate(
-                    ['business_id' => $business->id, 'accommodation_id' => $acc->id, 'name' => $name],
+                    ['accommodation_id' => $acc->id, 'name' => $name],
                     [
                         'category' => $category,
                         'expected_quantity' => $qty,
@@ -128,8 +123,8 @@ class DemoDataSeeder extends Seeder
             }
         });
 
-        if (Guest::where('business_id', $business->id)->count() < 5) {
-            Guest::factory()->count(10)->create(['business_id' => $business->id]);
+        if (Guest::count() < 5) {
+            Guest::factory()->count(10)->create();
         }
     }
 }

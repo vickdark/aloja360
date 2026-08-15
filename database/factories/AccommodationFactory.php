@@ -31,7 +31,6 @@ class AccommodationFactory extends Factory
         $nameList = $namesByType[$type->value] ?? $namesByType['cabin'];
 
         return [
-            'business_id' => Business::inRandomOrder()->first()?->id ?? Business::factory(),
             'code' => strtoupper(substr($type->value, 0, 3)) . '-' . fake()->unique()->numerify('###'),
             'name' => $nameList[array_rand($nameList)],
             'slug' => fake()->slug(),

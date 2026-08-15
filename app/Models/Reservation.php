@@ -16,7 +16,6 @@ class Reservation extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'business_id',
         'code',
         'status',
         'source',
@@ -78,11 +77,6 @@ class Reservation extends Model
             'no_show_at' => 'datetime',
             'hold_until' => 'datetime',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

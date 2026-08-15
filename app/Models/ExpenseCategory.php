@@ -12,7 +12,6 @@ class ExpenseCategory extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'name',
         'slug',
         'code',
@@ -30,11 +29,6 @@ class ExpenseCategory extends Model
             'is_tax_deductible' => 'boolean',
             'is_default' => 'boolean',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function expenses(): HasMany

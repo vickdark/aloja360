@@ -595,4 +595,5 @@ Cada uno con relaciones, casts a Enums/decimal/date/datetime, y helpers donde ap
 - `business_user` pivot con `role_id` por negocio
 - Consultas futuras deben aplicar scope global por `business_id` activo
 - `users.current_business_id` indica el negocio seleccionado en la sesión
-- URL manipulation debe bloquearse en Policies (ej: `/reservations/100` debe pertenecer al business activo)
+- `business_id` filtra el contexto de datos. Las Policies autorizan por permiso, por lo que un usuario con el permiso requerido no se bloquea únicamente por la relación pivote con ese negocio.
+- El rol global de superadministración usa únicamente el slug canónico `admin`. El slug heredado `administrator` se consolida a `admin`, incluyendo usuarios, asignaciones por negocio y permisos.

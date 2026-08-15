@@ -16,7 +16,6 @@ class MaintenanceRequest extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'business_id',
         'accommodation_id',
         'status',
         'priority',
@@ -54,11 +53,6 @@ class MaintenanceRequest extends Model
             'blocks_accommodation' => 'boolean',
             'photos' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

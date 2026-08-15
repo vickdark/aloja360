@@ -14,37 +14,28 @@ class AccommodationController extends Controller
 
     public function index(Request $request)
     {
-        $businessId = $request->query('business_id', $request->user()->businesses()->first()?->id);
-        
-        if (!$businessId) {
-            if ($request->wantsJson()) return response()->json(['message' => 'El business_id es requerido'], 400);
-            return redirect()->route('dashboard')->with('error', 'Debe seleccionar un negocio.');
-        }
+        $this->authorize('viewAny', Accommodation::class);
 
-        /** @var \App\Models\Usuarios\Usuario $user */
-        $user = $request->user();
-
-        if (!$user->belongsToBusiness($businessId)) {
-            if ($request->wantsJson()) return response()->json(['message' => 'No autorizado para este negocio'], 403);
-            return abort(403, 'No autorizado para este negocio.');
-        }
-
-        $accommodations = Accommodation::where('business_id', $businessId)->get();
+        $accommodations = Accommodation::all();
 
         if ($request->wantsJson()) {
             return response()->json($accommodations);
         }
 
-        return view('accommodations.index', compact('accommodations', 'businessId'));
+        return view('accommodations.index', compact('accommodations'));
     }
 
-    public function show(Accommodation $accommodation): JsonResponse
+    public function show(Accommodation $accommodation)
     {
         $this->authorize('view', $accommodation);
 
         $accommodation->load(['amenities', 'ratePeriods', 'blockedPeriods']);
 
-        return response()->json($accommodation);
+        if (request()->wantsJson()) {
+            return response()->json($accommodation);
+        }
+        
+        return view('accommodations.show', compact('accommodation'));
     }
 
     /**
@@ -53,22 +44,11 @@ class AccommodationController extends Controller
     public function available(Request $request, AvailabilityService $availabilityService): JsonResponse
     {
         $request->validate([
-            'business_id' => 'required|integer',
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
         ]);
 
-        $businessId = $request->input('business_id');
-
-        /** @var \App\Models\Usuarios\Usuario $user */
-        $user = $request->user();
-
-        if (!$user->belongsToBusiness($businessId)) {
-            return response()->json(['message' => 'No autorizado para este negocio'], 403);
-        }
-
         $availableAccommodations = $availabilityService->getAvailableAccommodations(
-            $businessId,
             $request->input('check_in_date'),
             $request->input('check_out_date')
         );

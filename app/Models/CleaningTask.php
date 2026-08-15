@@ -13,7 +13,6 @@ class CleaningTask extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'accommodation_id',
         'reservation_id',
         'stay_id',
@@ -45,11 +44,6 @@ class CleaningTask extends Model
             'photos_before' => 'array',
             'photos_after' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

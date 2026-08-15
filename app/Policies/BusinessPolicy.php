@@ -12,7 +12,7 @@ class BusinessPolicy
      */
     public function viewAny(Usuario $usuario): bool
     {
-        return $usuario->businesses()->exists();
+        return true;
     }
 
     /**
@@ -20,7 +20,7 @@ class BusinessPolicy
      */
     public function view(Usuario $usuario, Business $business): bool
     {
-        return $usuario->belongsToBusiness($business->id);
+        return true;
     }
 
     /**
@@ -28,7 +28,6 @@ class BusinessPolicy
      */
     public function create(Usuario $usuario): bool
     {
-        // En un SaaS, solo superadmins o roles específicos pueden crear negocios.
         return $usuario->hasRole('Super Administrador');
     }
 
@@ -37,10 +36,7 @@ class BusinessPolicy
      */
     public function update(Usuario $usuario, Business $business): bool
     {
-        // Solo usuarios que pertenecen al negocio y tienen permisos pueden editar.
-        // Aquí simplificaremos a pertenecer al negocio y tener un rol de Admin de negocio,
-        // o si tienes el permiso específico (asumiendo que uses un trait de permisos por negocio luego).
-        return $usuario->belongsToBusiness($business->id);
+        return $usuario->hasRole('Super Administrador') || $usuario->hasRole('Administrador de Negocio');
     }
 
     /**

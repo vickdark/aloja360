@@ -12,7 +12,6 @@ class InventoryItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'accommodation_id',
         'category',
         'name',
@@ -47,11 +46,6 @@ class InventoryItem extends Model
             'reorder_threshold' => 'integer',
             'photos' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

@@ -14,7 +14,6 @@ class Guest extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'business_id',
         'first_name',
         'last_name',
         'document_type',
@@ -47,11 +46,6 @@ class Guest extends Model
             'lifetime_value' => 'decimal:2',
             'last_stay_at' => 'datetime',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function fullName(): string

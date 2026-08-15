@@ -15,7 +15,6 @@ class AuditLog extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
-        'business_id',
         'user_id',
         'action',
         'model_type',
@@ -36,11 +35,6 @@ class AuditLog extends Model
             'new_values' => 'array',
             'context' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function user(): BelongsTo

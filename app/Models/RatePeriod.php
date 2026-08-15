@@ -12,7 +12,6 @@ class RatePeriod extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'accommodation_id',
         'name',
         'start_date',
@@ -40,11 +39,6 @@ class RatePeriod extends Model
             'price_per_night' => 'decimal:2',
             'extra_guest_price' => 'decimal:2',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

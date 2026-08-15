@@ -12,7 +12,7 @@ class GuestPolicy
      */
     public function viewAny(Usuario $usuario): bool
     {
-        return $usuario->businesses()->exists();
+        return true;
     }
 
     /**
@@ -20,7 +20,7 @@ class GuestPolicy
      */
     public function view(Usuario $usuario, Guest $guest): bool
     {
-        return $usuario->belongsToBusiness($guest->business_id);
+        return true;
     }
 
     /**
@@ -28,7 +28,7 @@ class GuestPolicy
      */
     public function create(Usuario $usuario): bool
     {
-        return true; // Business scope check via FormRequest
+        return true;
     }
 
     /**
@@ -36,7 +36,7 @@ class GuestPolicy
      */
     public function update(Usuario $usuario, Guest $guest): bool
     {
-        return $usuario->belongsToBusiness($guest->business_id);
+        return true;
     }
 
     /**
@@ -44,6 +44,6 @@ class GuestPolicy
      */
     public function delete(Usuario $usuario, Guest $guest): bool
     {
-        return $usuario->belongsToBusiness($guest->business_id);
+        return true;
     }
 }

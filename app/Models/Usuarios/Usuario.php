@@ -26,7 +26,6 @@ class Usuario extends Authenticatable
 
     protected $fillable = [
         'role_id',
-        'current_business_id',
         'name',
         'email',
         'password',
@@ -35,26 +34,6 @@ class Usuario extends Authenticatable
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
-    }
-
-    public function currentBusiness(): BelongsTo
-    {
-        return $this->belongsTo(Business::class, 'current_business_id');
-    }
-
-    public function businesses(): BelongsToMany
-    {
-        return $this->belongsToMany(Business::class, 'business_user', 'user_id', 'business_id')
-            ->withPivot('role_id')
-            ->withTimestamps();
-    }
-
-    /**
-     * Check if the user belongs to a specific business.
-     */
-    public function belongsToBusiness(int $businessId): bool
-    {
-        return $this->businesses()->where('business_id', $businessId)->exists();
     }
 
     /**
@@ -80,23 +59,6 @@ class Usuario extends Authenticatable
         }
 
         return $this->role->permissions()->where('slug', $slug)->exists();
-    }
-
-    public function hasBusinessPermission(Business $business, string $slug): bool
-    {
-        $pivot = $this->businesses()->where('business_id', $business->id)->first();
-
-        if (!$pivot || !$pivot->pivot?->role_id) {
-            return false;
-        }
-
-        $role = Role::find($pivot->pivot->role_id);
-
-        if (!$role) {
-            return false;
-        }
-
-        return $role->permissions()->where('slug', $slug)->exists();
     }
 
     public function auditLogs(): HasMany

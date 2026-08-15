@@ -11,17 +11,7 @@ class UpdateReservationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $reservation = $this->route('reservation');
-
-        if (!$reservation) {
-            return false;
-        }
-
-        /** @var \App\Models\Usuarios\Usuario $user */
-        $user = $this->user();
-
-        // El usuario debe pertenecer al negocio de la reserva
-        return $user && $user->belongsToBusiness($reservation->business_id);
+        return true;
     }
 
     /**
@@ -30,8 +20,6 @@ class UpdateReservationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // No permitimos cambiar business_id ni accommodation_id en update simple.
-            // Para cambiar de alojamiento o fechas se requeriría una validación completa de disponibilidad (mejor otra action).
             'primary_guest_id' => ['sometimes', 'required', 'integer', 'exists:guests,id'],
             'guests_count' => ['sometimes', 'required', 'integer', 'min:1'],
             'adults_count' => ['sometimes', 'required', 'integer', 'min:1'],

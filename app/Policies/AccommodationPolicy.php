@@ -12,7 +12,7 @@ class AccommodationPolicy
      */
     public function viewAny(Usuario $usuario): bool
     {
-        return $usuario->businesses()->exists();
+        return true;
     }
 
     /**
@@ -20,7 +20,7 @@ class AccommodationPolicy
      */
     public function view(Usuario $usuario, Accommodation $accommodation): bool
     {
-        return $usuario->belongsToBusiness($accommodation->business_id);
+        return true;
     }
 
     /**
@@ -28,7 +28,7 @@ class AccommodationPolicy
      */
     public function create(Usuario $usuario): bool
     {
-        return true; // FormRequest will check if user belongs to the requested business_id
+        return true;
     }
 
     /**
@@ -36,7 +36,7 @@ class AccommodationPolicy
      */
     public function update(Usuario $usuario, Accommodation $accommodation): bool
     {
-        return $usuario->belongsToBusiness($accommodation->business_id);
+        return true;
     }
 
     /**
@@ -44,6 +44,6 @@ class AccommodationPolicy
      */
     public function delete(Usuario $usuario, Accommodation $accommodation): bool
     {
-        return $usuario->belongsToBusiness($accommodation->business_id);
+        return true;
     }
 }

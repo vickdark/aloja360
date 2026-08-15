@@ -37,13 +37,6 @@ class Business extends Model
         ];
     }
 
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(Usuario::class, 'business_user', 'business_id', 'user_id')
-            ->withPivot('role_id')
-            ->withTimestamps();
-    }
-
     public function accommodations(): HasMany
     {
         return $this->hasMany(Accommodation::class);

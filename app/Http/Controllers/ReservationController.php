@@ -20,23 +20,9 @@ class ReservationController extends Controller
 
     public function index(Request $request)
     {
-        $businessId = $request->query('business_id', $request->user()->businesses()->first()?->id);
-        
-        if (!$businessId) {
-            if ($request->wantsJson()) return response()->json(['message' => 'El business_id es requerido'], 400);
-            return redirect()->route('dashboard')->with('error', 'Debe seleccionar un negocio.');
-        }
-
-        /** @var \App\Models\Usuarios\Usuario $user */
-        $user = $request->user();
-
-        if (!$user->belongsToBusiness($businessId)) {
-            if ($request->wantsJson()) return response()->json(['message' => 'No autorizado para este negocio'], 403);
-            return abort(403, 'No autorizado para este negocio.');
-        }
+        $this->authorize('viewAny', Reservation::class);
 
         $reservations = Reservation::with(['accommodation', 'primaryGuest'])
-            ->where('business_id', $businessId)
             ->orderBy('check_in_date', 'asc')
             ->paginate(20);
 
@@ -44,7 +30,7 @@ class ReservationController extends Controller
             return response()->json($reservations);
         }
 
-        return view('reservations.index', compact('reservations', 'businessId'));
+        return view('reservations.index', compact('reservations'));
     }
 
     public function store(StoreReservationRequest $request, CreateReservationAction $action): JsonResponse

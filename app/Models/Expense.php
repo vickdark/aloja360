@@ -14,7 +14,6 @@ class Expense extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'business_id',
         'expense_category_id',
         'accommodation_id',
         'maintenance_request_id',
@@ -49,11 +48,6 @@ class Expense extends Model
             'is_tax_deductible' => 'boolean',
             'is_approved' => 'boolean',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function expenseCategory(): BelongsTo

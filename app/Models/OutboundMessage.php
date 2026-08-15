@@ -15,7 +15,6 @@ class OutboundMessage extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'channel',
         'status',
         'recipient_type',
@@ -55,11 +54,6 @@ class OutboundMessage extends Model
             'retry_count' => 'integer',
             'provider_response' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function recipient(): MorphTo

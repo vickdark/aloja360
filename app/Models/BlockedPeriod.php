@@ -13,7 +13,6 @@ class BlockedPeriod extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'accommodation_id',
         'type',
         'start_date',
@@ -32,11 +31,6 @@ class BlockedPeriod extends Model
             'end_date' => 'date',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function accommodation(): BelongsTo

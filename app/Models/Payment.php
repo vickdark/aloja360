@@ -16,7 +16,6 @@ class Payment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'business_id',
         'code',
         'type',
         'status',
@@ -52,11 +51,6 @@ class Payment extends Model
             'rejected_at' => 'datetime',
             'gateway_response' => 'array',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function reservation(): BelongsTo

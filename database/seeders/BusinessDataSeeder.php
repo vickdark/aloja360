@@ -34,11 +34,7 @@ class BusinessDataSeeder extends Seeder
 
         $adminUser = Usuario::where('email', 'victormanjarres3mayo@gmail.com')->first();
         if ($adminUser) {
-            $adminRole = Role::where('slug', 'admin')->first();
-            $business->users()->syncWithoutDetaching([
-                $adminUser->id => ['role_id' => $adminRole?->id],
-            ]);
-            $adminUser->update(['current_business_id' => $business->id]);
+            // Usuario es admin
         }
 
         $amenities = [
@@ -61,10 +57,9 @@ class BusinessDataSeeder extends Seeder
 
         foreach ($amenities as $amenity) {
             Amenity::firstOrCreate(
-                ['business_id' => $business->id, 'name' => $amenity['name']],
+                ['name' => $amenity['name']],
                 [
                     ...$amenity,
-                    'business_id' => $business->id,
                     'is_default' => true,
                     'description' => $amenity['name'],
                 ]
@@ -84,10 +79,9 @@ class BusinessDataSeeder extends Seeder
 
         foreach ($services as $service) {
             Service::firstOrCreate(
-                ['business_id' => $business->id, 'name' => $service['name']],
+                ['name' => $service['name']],
                 [
                     ...$service,
-                    'business_id' => $business->id,
                     'description' => 'Servicio de ' . strtolower($service['name']),
                     'is_taxable' => true,
                     'tax_rate' => 19,
@@ -99,11 +93,10 @@ class BusinessDataSeeder extends Seeder
         $categories = ExpenseCategory::cases();
         foreach ($categories as $category) {
             ExpenseCategoryModel::firstOrCreate(
-                ['business_id' => $business->id, 'slug' => $category->value],
+                ['slug' => $category->value],
                 [
                     'name' => $category->label(),
                     'slug' => $category->value,
-                    'business_id' => $business->id,
                     'description' => 'Gastos de ' . strtolower($category->label()),
                     'is_tax_deductible' => true,
                     'is_default' => true,

@@ -12,7 +12,6 @@ class Service extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_id',
         'name',
         'slug',
         'description',
@@ -33,11 +32,6 @@ class Service extends Model
             'tax_rate' => 'decimal:2',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function reservations(): BelongsToMany

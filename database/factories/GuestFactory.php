@@ -16,7 +16,6 @@ class GuestFactory extends Factory
         $docTypes = DocumentType::cases();
 
         return [
-            'business_id' => Business::inRandomOrder()->first()?->id ?? Business::factory(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'document_type' => $docTypes[array_rand($docTypes)],

@@ -10,6 +10,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WelcomeController;
 
 use App\Http\Controllers\ConfiguracionController;
+use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\AccommodationController;
+use App\Http\Controllers\BusinessController;
 
 Route::redirect('/', '/login');
 
@@ -19,6 +22,32 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/admin', [DashboardController::class, 'index'])->name('dashboard.admin');
     
+    // Aloja360 MVP Core Routes (Web Views)
+    // Negocios
+    Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
+    Route::get('businesses/create', [BusinessController::class, 'create'])->name('businesses.create');
+    Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
+
+    // Reservas
+    Route::get('reservations', [ReservationController::class, 'index'])->name('reservations.index');
+    Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
+    Route::get('reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
+    Route::put('reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
+    Route::post('reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
+    Route::post('reservations/{reservation}/check-in', [ReservationController::class, 'checkIn'])->name('reservations.checkIn');
+    Route::post('reservations/{reservation}/check-out', [ReservationController::class, 'checkOut'])->name('reservations.checkOut');
+    Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+
+    // Alojamientos
+    Route::get('accommodations', [AccommodationController::class, 'index'])->name('accommodations.index');
+    Route::get('accommodations/available', [AccommodationController::class, 'available'])->name('accommodations.available');
+    Route::get('accommodations/{accommodation}', [AccommodationController::class, 'show'])->name('accommodations.show');
+
+    // API Routes (AJAX calls)
+    Route::prefix('api/v1')->group(function () {
+        // We can expose the JSON endpoints here if needed later, but for now we use the web routes for the UI.
+    });
+
     Route::resources([
         'usuarios' => UsuarioController::class,
         'roles' => RoleController::class,

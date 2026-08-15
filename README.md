@@ -74,3 +74,7 @@ Para que el proyecto tenga el nombre de tu nuevo producto, debes cambiarlo en es
 1.  **Generar clave de aplicación:** `php artisan key:generate`
 2.  **Migrar base de datos:** `php artisan migrate --seed`
 3.  **Compilar assets:** `npm run dev` o `npm run build`
+
+
+
+

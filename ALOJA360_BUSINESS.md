@@ -272,6 +272,8 @@ Solo debe consultar y modificar mantenimiento que le corresponda.
 
 Aplicar autorización mediante Policies y permisos.
 
+`business_id` determina el contexto y el filtro de datos; no debe sustituir la comprobación de permisos ni causar un 403 a un usuario que sí posee el permiso requerido.
+
 Nunca confiar únicamente en ocultar botones en la interfaz.
 
 ---
@@ -1525,7 +1527,7 @@ Aplicar:
 - Validación mediante Form Requests
 - Policies
 - CSRF
-- Autorización por negocio
+- Autorización por permisos dentro del contexto de negocio
 - Protección contra mass assignment
 - Validación de archivos
 - Límites de tamaño

@@ -4,13 +4,13 @@ namespace App\Models\Usuarios;
 
 use App\Models\AuditLog;
 use App\Models\Business;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use App\Models\Roles\Role;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class Usuario extends Authenticatable
 {
@@ -62,41 +62,62 @@ class Usuario extends Authenticatable
      */
     public function hasRole(string|array $roles): bool
     {
-        if (!$this->role) {
-            return false;
-        }
+        $roles = (array) $roles;
+        $canonicalRoles = array_map([Role::class, 'canonicalSlug'], $roles);
 
-        if (is_array($roles)) {
-            return in_array($this->role->nombre, $roles) || in_array($this->role->slug, $roles);
-        }
-
-        return $this->role->nombre === $roles || $this->role->slug === $roles;
+        return collect([$this->role, $this->roleForCurrentBusiness()])
+            ->filter()
+            ->contains(fn (Role $role) => in_array($role->nombre, $roles, true)
+                || in_array(Role::canonicalSlug($role->slug), $canonicalRoles, true));
     }
 
     public function hasPermission(string $slug): bool
     {
-        if (!$this->role) {
-            return false;
+        if ($this->isSystemAdministrator()) {
+            return true;
         }
 
-        return $this->role->permissions()->where('slug', $slug)->exists();
+        return $this->roleForCurrentBusiness()?->permissions()->where('slug', $slug)->exists()
+            ?? $this->role?->permissions()->where('slug', $slug)->exists()
+            ?? false;
     }
 
     public function hasBusinessPermission(Business $business, string $slug): bool
     {
-        $pivot = $this->businesses()->where('business_id', $business->id)->first();
+        $role = $this->roleForBusiness($business);
 
-        if (!$pivot || !$pivot->pivot?->role_id) {
+        if (! $role) {
             return false;
         }
 
-        $role = Role::find($pivot->pivot->role_id);
+        return $this->isSystemAdministrator() || $role->permissions()->where('slug', $slug)->exists();
+    }
 
-        if (!$role) {
-            return false;
-        }
+    public function roleForCurrentBusiness(): ?Role
+    {
+        return $this->current_business_id
+            ? $this->roleForBusinessId((int) $this->current_business_id)
+            : null;
+    }
 
-        return $role->permissions()->where('slug', $slug)->exists();
+    public function roleForBusiness(Business $business): ?Role
+    {
+        return $this->roleForBusinessId($business->id);
+    }
+
+    public function isSystemAdministrator(): bool
+    {
+        return $this->role
+            && Role::canonicalSlug($this->role->slug) === Role::ADMIN_SLUG;
+    }
+
+    private function roleForBusinessId(int $businessId): ?Role
+    {
+        $business = $this->businesses()->whereKey($businessId)->first();
+
+        return $business?->pivot?->role_id
+            ? Role::find($business->pivot->role_id)
+            : null;
     }
 
     public function auditLogs(): HasMany

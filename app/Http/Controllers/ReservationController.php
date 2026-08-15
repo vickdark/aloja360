@@ -20,18 +20,24 @@ class ReservationController extends Controller
 
     public function index(Request $request)
     {
-        $businessId = $request->query('business_id', $request->user()->businesses()->first()?->id);
-        
-        if (!$businessId) {
-            if ($request->wantsJson()) return response()->json(['message' => 'El business_id es requerido'], 400);
+        $businessId = $request->query('business_id', $request->user()->current_business_id ?? $request->user()->businesses()->first()?->id);
+
+        if (! $businessId) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'El business_id es requerido'], 400);
+            }
+
             return redirect()->route('dashboard')->with('error', 'Debe seleccionar un negocio.');
         }
 
         /** @var \App\Models\Usuarios\Usuario $user */
         $user = $request->user();
 
-        if (!$user->belongsToBusiness($businessId)) {
-            if ($request->wantsJson()) return response()->json(['message' => 'No autorizado para este negocio'], 403);
+        if (! $user->hasPermission('reservations.index')) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'No autorizado para este negocio'], 403);
+            }
+
             return abort(403, 'No autorizado para este negocio.');
         }
 
@@ -57,7 +63,7 @@ class ReservationController extends Controller
 
             return response()->json([
                 'message' => 'Reserva creada exitosamente',
-                'data' => $reservation->load(['accommodation', 'primaryGuest'])
+                'data' => $reservation->load(['accommodation', 'primaryGuest']),
             ], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -69,11 +75,11 @@ class ReservationController extends Controller
         $this->authorize('view', $reservation);
 
         $reservation->load([
-            'accommodation', 
-            'primaryGuest', 
-            'services', 
-            'payments', 
-            'statusHistories.changedBy'
+            'accommodation',
+            'primaryGuest',
+            'services',
+            'payments',
+            'statusHistories.changedBy',
         ]);
 
         return response()->json($reservation);
@@ -85,7 +91,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'message' => 'Reserva actualizada exitosamente',
-            'data' => $reservation
+            'data' => $reservation,
         ]);
     }
 
@@ -139,9 +145,9 @@ class ReservationController extends Controller
 
         try {
             $action->execute(
-                $reservation, 
-                $request->input('reason'), 
-                $request->user()->id, 
+                $reservation,
+                $request->input('reason'),
+                $request->user()->id,
                 $request->input('notes', '')
             );
 

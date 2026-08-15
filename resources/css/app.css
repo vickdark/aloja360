@@ -1,0 +1,250 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+@import "tom-select/dist/css/tom-select.css";
+@import "gridjs/dist/theme/mermaid.css";
+
+:root {
+    --brand: #c05a1e;
+    --sidebar-bg: #11182a;
+    --sidebar-card: #1a2440;
+    --sidebar-text: #c9d2f0;
+    --sidebar-muted: #8a95b5;
+    --content-bg: #f5f7fb;
+    --sidebar-width: 260px;
+    --sidebar-mini-width: 78px;
+    --topbar-bg: #ffffff;
+    --border-color: #e2e8f0;
+}
+
+/* Regresamos al scroll natural del navegador */
+html, body {
+    height: auto !important;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
+    background: var(--content-bg);
+}
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    align-items: flex-start; /* Clave para que sticky funcione bien */
+}
+
+/* Sidebar FIJO pero que no bloquea el body */
+.app-sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    position: sticky !important; /* Más estable que fixed dentro de flexbox */
+    top: 0 !important;
+    height: 100vh !important; /* Siempre ocupa el alto de la pantalla */
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* TODO el sidebar scrollea si el contenido interno es largo */
+    flex-shrink: 0;
+    transition: width 0.3s ease;
+}
+
+/* Modo Mini Desktop */
+.sidebar-mini .app-sidebar {
+    width: var(--sidebar-mini-width);
+    overflow-x: hidden;
+}
+
+.sidebar-mini .app-sidebar .app-brand-info,
+.sidebar-mini .app-sidebar .app-link-text,
+.sidebar-mini .app-sidebar .app-user-info,
+.sidebar-mini .app-sidebar .text-sidebar-muted {
+    display: none;
+}
+
+.sidebar-mini .app-sidebar .app-sidebar-brand,
+.sidebar-mini .app-sidebar .app-user-card {
+    justify-content: center;
+    padding: 24px 0;
+}
+
+.sidebar-mini .app-sidebar .nav-link {
+    justify-content: center;
+    padding: 12px 0;
+    margin: 4px 10px;
+}
+
+.app-sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Toma todo el alto del sidebar */
+    min-height: 100%;
+    width: 100%;
+}
+
+.app-sidebar-brand {
+    padding: 24px 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.app-sidebar-nav {
+    flex: 1 1 auto; /* Permite que el menú crezca y empuje el footer hacia abajo */
+    padding: 10px 0;
+}
+
+.app-sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.app-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.app-sidebar-footer {
+    padding: 20px 16px;
+    flex-shrink: 0;
+    margin-top: auto; /* Empuja el footer al fondo de la pantalla */
+}
+
+/* El MAIN fluye con el scroll del navegador */
+.app-main {
+    flex: 1;
+    /* margin-left no es necesario en flexbox */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-width: 0; /* Previene que el contenido desborde el flex container y rompa el navbar */
+}
+
+.sidebar-mini .app-main {
+    /* Ya no necesita ajustes de margen */
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    display: none;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-open .sidebar-overlay {
+    display: block;
+}
+
+.app-topbar {
+    height: 64px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: sticky; /* El navbar sí se queda arriba al bajar */
+    top: 0;
+    z-index: 1000;
+}
+
+.app-content {
+    padding: 24px;
+    flex: 1;
+}
+
+/* El footer ahora es natural, se ve al final del scroll */
+.app-footer {
+    padding: 20px 24px;
+    background: #ffffff;
+    border-top: 1px solid var(--border-color);
+    color: #64748b;
+    font-size: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Estilos de componentes */
+.app-sidebar-nav .nav-link {
+    color: var(--sidebar-text);
+    text-decoration: none;
+    padding: 10px 16px;
+    margin: 2px 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.app-sidebar-nav .nav-link:hover,
+.app-sidebar-nav .nav-link.active {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+.app-sidebar-nav .nav-link.active {
+    background: var(--sidebar-card);
+}
+
+.app-user-card {
+    background: var(--sidebar-card);
+    padding: 12px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+}
+
+.app-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #0d6efd; /* Color azul clásico en lugar del color principal */
+    color: #ffffff;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-user-avatar.sm {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+}
+
+.logout-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+@media (max-width: 991px) {
+    .app-sidebar {
+        position: fixed !important; /* En móvil sí necesitamos que sea fixed y flote */
+        left: -100% !important;
+        width: 280px; /* Un poco más ancho en móvil */
+        transition: left 0.3s ease;
+    }
+    .sidebar-open .app-sidebar {
+        left: 0 !important;
+    }
+    .app-main {
+        /* Nada que ajustar aquí en móvil */
+    }
+}

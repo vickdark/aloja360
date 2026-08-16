@@ -28,63 +28,107 @@ class SyncPermissions extends Command
     {
         $this->info('Iniciando sincronización de permisos...');
 
+        $result = self::runSync(function ($step, $total, $message, $type = 'info') {
+            if ($type === 'line') {
+                $this->line($message);
+            } elseif ($type === 'warn') {
+                $this->warn($message);
+            } else {
+                $this->info($message);
+            }
+        });
+
+        $this->info("Sincronización completada. Total nuevos: {$result['created']}. Eliminados: {$result['deleted']}.");
+    }
+
+    /**
+     * Lógica central de sincronización, reutilizable desde CLI y Web.
+     * Acepta un callback de progreso: function($step, $total, $message, $type)
+     */
+    public static function runSync(?callable $onProgress = null): array
+    {
         $routes = Route::getRoutes();
-        $permissionsCreated = 0;
-        $activeSlugs = [];
+        $routeNames = [];
 
         foreach ($routes as $route) {
             $name = $route->getName();
-            
-            // Solo procesamos rutas que tengan nombre y no sean de sistema/ignorar
-            if ($name && $this->shouldSync($name)) {
-                $activeSlugs[] = $name;
-                
-                $permission = \App\Models\Roles\Permission::updateOrCreate(
-                    ['slug' => $name],
-                    [
-                        'nombre' => $this->generateName($name),
-                        'descripcion' => $this->generateDescription($name, $route),
-                        'is_menu' => $this->isMenu($name),
-                        'icon' => $this->generateIcon($name),
-                        'module' => $this->generateModuleName($name),
-                        'order' => $this->generateOrder($name),
-                    ]
-                );
+            if ($name && self::shouldSyncStatic($name)) {
+                $routeNames[] = [
+                    'name' => $name,
+                    'route' => $route,
+                ];
+            }
+        }
 
-                if ($permission->wasRecentlyCreated) {
-                    $permissionsCreated++;
-                    $this->line(" <info>✔</info> Nuevo permiso detectado: {$name} -> {$permission->nombre}");
+        $total = count($routeNames);
+        $permissionsCreated = 0;
+        $activeSlugs = [];
+        $step = 0;
+
+        foreach ($routeNames as $item) {
+            $step++;
+            $name = $item['name'];
+            $route = $item['route'];
+            $activeSlugs[] = $name;
+
+            $permission = \App\Models\Roles\Permission::updateOrCreate(
+                ['slug' => $name],
+                [
+                    'nombre' => self::generateNameStatic($name),
+                    'descripcion' => self::generateDescriptionStatic($name, $route),
+                    'is_menu' => self::isMenuStatic($name),
+                    'icon' => self::generateIconStatic($name),
+                    'module' => self::generateModuleNameStatic($name),
+                    'order' => self::generateOrderStatic($name),
+                ]
+            );
+
+            if ($permission->wasRecentlyCreated) {
+                $permissionsCreated++;
+                if ($onProgress) {
+                    $onProgress($step, $total, "✔ Nuevo permiso: {$name}", 'line');
+                }
+            } else {
+                if ($onProgress && ($step % 5 === 0 || $step === $total)) {
+                    $onProgress($step, $total, "Procesando: {$name}", 'info');
                 }
             }
         }
 
-        // Limpieza automática de permisos antiguos (siempre activo por petición del usuario)
         $deleted = \App\Models\Roles\Permission::whereNotIn('slug', $activeSlugs)->delete();
-        if ($deleted > 0) {
-            $this->warn("Se eliminaron {$deleted} permisos de rutas que ya no existen.");
+
+        if ($deleted > 0 && $onProgress) {
+            $onProgress($total, $total, "Se eliminaron {$deleted} permisos antiguos.", 'warn');
         }
 
-        $this->info("Sincronización completada. Total nuevos: {$permissionsCreated}.");
+        if ($onProgress) {
+            $onProgress($total, $total, "Sincronización completada. Nuevos: {$permissionsCreated}. Eliminados: {$deleted}.", 'success');
+        }
+
+        return [
+            'created' => $permissionsCreated,
+            'deleted' => $deleted,
+            'processed' => $total,
+        ];
     }
 
     /**
-     * Determina si una ruta debe ser sincronizada.
+     * Wrappers estáticos de los helpers protegidos.
      */
-    protected function shouldSync($name)
+    protected static function shouldSyncStatic($name)
     {
         $excludedPrefixes = [
-            'sanctum.', 'ignition.', 'livewire.', 'verification.', 
+            'sanctum.', 'ignition.', 'livewire.', 'verification.',
             'password.', 'login', 'logout', 'register',
             'profile.', 'storage.'
         ];
-        
+
         foreach ($excludedPrefixes as $prefix) {
             if (str_starts_with($name, $prefix)) {
                 return false;
             }
         }
 
-        // Permitir dashboard y rutas con puntos
         if ($name === 'dashboard' || str_contains($name, '.')) {
             return true;
         }
@@ -92,10 +136,7 @@ class SyncPermissions extends Command
         return false;
     }
 
-    /**
-     * Genera un nombre legible y en español a partir del slug.
-     */
-    protected function generateName($slug)
+    protected static function generateNameStatic($slug)
     {
         if (str_starts_with($slug, 'dashboard.')) {
             $role = ucfirst(str_replace('dashboard.', '', $slug));
@@ -106,18 +147,14 @@ class SyncPermissions extends Command
         $action = end($parts);
         $module = count($parts) > 1 ? $parts[count($parts) - 2] : 'General';
 
-        $translations = $this->getTranslations();
-
+        $translations = self::getTranslationsStatic();
         $actionName = $translations[$action] ?? ucfirst($action);
         $moduleName = ucfirst($module);
 
         return "{$actionName} {$moduleName}";
     }
 
-    /**
-     * Obtiene las traducciones de las acciones comunes.
-     */
-    protected function getTranslations()
+    protected static function getTranslationsStatic()
     {
         return [
             'index'   => 'Ver lista de',
@@ -135,10 +172,7 @@ class SyncPermissions extends Command
         ];
     }
 
-    /**
-     * Genera una descripción clara basada en la ruta y el controlador.
-     */
-    protected function generateDescription($slug, $route)
+    protected static function generateDescriptionStatic($slug, $route)
     {
         if (str_starts_with($slug, 'dashboard.')) {
             $role = str_replace('dashboard.', '', $slug);
@@ -148,45 +182,28 @@ class SyncPermissions extends Command
         $parts = explode('.', $slug);
         $action = end($parts);
         $module = count($parts) > 1 ? $parts[count($parts) - 2] : 'General';
-        
-        $translations = $this->getTranslations();
+
+        $translations = self::getTranslationsStatic();
         $actionName = $translations[$action] ?? ucfirst($action);
         $moduleName = ucfirst($module);
 
         return "Permite {$actionName} {$moduleName} en el sistema";
     }
 
-    /**
-     * Determina si la ruta debe aparecer en el menú.
-     */
-    protected function isMenu($slug)
+    protected static function isMenuStatic($slug)
     {
         if ($slug === 'dashboard') return true;
-        
-        // No mostrar dashboards específicos de rol en el menú directamente,
-        // ya que el DashboardController se encarga de redirigir.
         if (str_starts_with($slug, 'dashboard.')) return false;
 
         $parts = explode('.', $slug);
         $action = end($parts);
 
-        // Excluimos explícitamente las acciones que requieren ID o no tienen sentido en el menú
-        $excludedActions = ['show', 'edit', 'destroy', 'update', 'store', 'update_permissions', 'edit_permissions', 'sync'];
-        
-        if (in_array($action, $excludedActions)) {
-            return false;
-        }
-
-        // Cualquier otra acción (index, create, sync, export, etc.) puede ir al menú
-        return true;
+        return $action === 'index';
     }
 
-    /**
-     * Genera un icono sugerido según el nombre del módulo.
-     */
-    protected function generateIcon($slug)
+    protected static function generateIconStatic($slug)
     {
-        if ($slug === 'dashboard') return 'fa-solid fa-gauge-high';
+        if ($slug === 'dashboard') return 'fa-solid fa-chart-line';
 
         $parts = explode('.', $slug);
         $module = count($parts) > 1 ? $parts[count($parts) - 2] : 'General';
@@ -196,42 +213,84 @@ class SyncPermissions extends Command
             'roles'    => 'fa-solid fa-user-shield',
             'permissions' => 'fa-solid fa-key',
             'configuracion' => 'fa-solid fa-gears',
-            'infraestructura' => 'fa-solid fa-server',
-            'inventario' => 'fa-solid fa-laptop-code',
-            'asignaciones' => 'fa-solid fa-hand-holding-hand',
-            'mantenimientos' => 'fa-solid fa-tools',
-            'bajas' => 'fa-solid fa-trash-can',
-            'configuracion' => 'fa-solid fa-gears',
+            'businesses' => 'fa-solid fa-building',
+            'accommodations' => 'fa-solid fa-house',
+            'amenities' => 'fa-solid fa-sparkles',
+            'rate_periods' => 'fa-solid fa-calendar-days',
+            'guests' => 'fa-solid fa-user-group',
+            'quotes' => 'fa-solid fa-file-invoice-dollar',
+            'reservations' => 'fa-solid fa-calendar-check',
+            'services' => 'fa-solid fa-bell-concierge',
+            'payments' => 'fa-solid fa-money-bill-wave',
+            'expenses' => 'fa-solid fa-receipt',
+            'expense_categories' => 'fa-solid fa-tags',
+            'cleaning' => 'fa-solid fa-broom',
+            'maintenance' => 'fa-solid fa-wrench',
+            'blocked_periods' => 'fa-solid fa-ban',
+            'inventory' => 'fa-solid fa-boxes-stacked',
+            'reports' => 'fa-solid fa-chart-pie',
         ];
 
         return $icons[strtolower($module)] ?? 'fa-solid fa-circle-dot';
     }
 
-    /**
-     * Genera el nombre del módulo para agrupar en el menú.
-     */
-    protected function generateModuleName($slug)
+    protected static function generateModuleNameStatic($slug)
     {
-        if ($slug === 'dashboard') return 'Dashboard';
+        if ($slug === 'dashboard') return 'General';
 
         $parts = explode('.', $slug);
         if (count($parts) <= 1) return 'General';
 
-        $module = $parts[count($parts) - 2];
-        
-        return ucfirst($module);
+        $module = strtolower($parts[count($parts) - 2]);
+
+        $modules = [
+            'usuarios' => 'Usuarios',
+            'roles' => 'Seguridad',
+            'permissions' => 'Seguridad',
+            'configuracion' => 'Configuración',
+            'businesses' => 'Configuración',
+            'accommodations' => 'Alojamientos',
+            'amenities' => 'Alojamientos',
+            'rate_periods' => 'Alojamientos',
+            'blocked_periods' => 'Alojamientos',
+            'guests' => 'Clientes',
+            'inventory' => 'Operación',
+            'quotes' => 'Cotizaciones',
+            'reservations' => 'Reservas',
+            'services' => 'Reservas',
+            'payments' => 'Finanzas',
+            'expenses' => 'Finanzas',
+            'expense_categories' => 'Finanzas',
+            'cleaning' => 'Operación',
+            'maintenance' => 'Operación',
+            'reports' => 'Reportes',
+        ];
+
+        return $modules[$module] ?? ucfirst($module);
     }
 
-    /**
-     * Genera el orden sugerido.
-     */
-    protected function generateOrder($slug)
+    protected static function generateOrderStatic($slug)
     {
         if ($slug === 'dashboard') return 1;
-        if (str_contains($slug, 'usuarios')) return 10;
-        if (str_contains($slug, 'roles')) return 20;
-        if (str_contains($slug, 'configuracion')) return 900;
-        if (str_contains($slug, 'infraestructura')) return 100;
+        if (str_contains($slug, 'accommodations')) return 10;
+        if (str_contains($slug, 'amenities')) return 11;
+        if (str_contains($slug, 'rate_periods')) return 12;
+        if (str_contains($slug, 'blocked_periods')) return 13;
+        if (str_contains($slug, 'guests')) return 20;
+        if (str_contains($slug, 'quotes')) return 30;
+        if (str_contains($slug, 'reservations')) return 35;
+        if (str_contains($slug, 'services')) return 36;
+        if (str_contains($slug, 'payments')) return 40;
+        if (str_contains($slug, 'expense_categories')) return 44;
+        if (str_contains($slug, 'expenses')) return 45;
+        if (str_contains($slug, 'cleaning')) return 50;
+        if (str_contains($slug, 'maintenance')) return 55;
+        if (str_contains($slug, 'inventory')) return 57;
+        if (str_contains($slug, 'reports')) return 60;
+        if (str_contains($slug, 'usuarios')) return 80;
+        if (str_contains($slug, 'roles') || str_contains($slug, 'permissions')) return 90;
+        if (str_contains($slug, 'configuracion') || str_contains($slug, 'businesses')) return 100;
+
         return 50;
     }
 }

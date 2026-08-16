@@ -119,5 +119,7 @@ class DatabaseSeeder extends Seeder
             BusinessDataSeeder::class,
             DemoDataSeeder::class,
         ]);
+
+        \Illuminate\Support\Facades\Artisan::call('permissions:sync');
     }
 }

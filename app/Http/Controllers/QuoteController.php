@@ -1,0 +1,268 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\QuoteStatus;
+use App\Enums\ReservationStatus;
+use App\Http\Requests\StoreQuoteRequest;
+use App\Http\Requests\UpdateQuoteRequest;
+use App\Models\Accommodation;
+use App\Models\Guest;
+use App\Models\Quote;
+use App\Models\Reservation;
+use App\Services\AvailabilityService;
+use App\Services\PricingService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class QuoteController extends Controller
+{
+    use AuthorizesRequests;
+
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', Quote::class);
+
+        $query = Quote::with(['accommodation', 'guest']);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->whereHas('guest', function($q) use ($s) {
+                $q->where('first_name', 'LIKE', "%$s%")->orWhere('last_name', 'LIKE', "%$s%")->orWhere('document_number', 'LIKE', "%$s%");
+            })->orWhere('code', 'LIKE', "%$s%");
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $quotes = $query->latest('created_at')->paginate(15)->withQueryString();
+        $statusCounts = Quote::selectRaw('status, COUNT(*) as count')->groupBy('status')->pluck('count', 'status');
+
+        return view('quotes.index', compact('quotes', 'statusCounts'));
+    }
+
+    public function create()
+    {
+        $this->authorize('create', Quote::class);
+        $accommodations = Accommodation::where('status', 'available')->orWhere('status', '!=', 'maintenance')->get()->pluck('name', 'id')->prepend('Seleccionar alojamiento', '');
+        $guests = Guest::all()->sortBy('first_name')->mapWithKeys(function ($g) {
+            $doc = $g->document_number ? ' ('.$g->document_number.')' : '';
+            $phone = $g->phone ? ' - '.$g->phone : '';
+            return [$g->id => trim("{$g->first_name} {$g->last_name}{$doc}{$phone}")];
+        })->prepend('Seleccionar huésped', '');
+
+        return view('quotes.create', compact('accommodations', 'guests'));
+    }
+
+    public function store(StoreQuoteRequest $request, PricingService $pricingService)
+    {
+        $this->authorize('create', Quote::class);
+
+        try {
+            DB::beginTransaction();
+
+            $data = $request->validated();
+            $data['created_by'] = auth()->id();
+            $data['code'] = $data['code'] ?? ('COT-' . strtoupper(Str::random(6)));
+            $data['status'] = QuoteStatus::Draft;
+            $data['guests_count'] = ($data['adults_count'] ?? 1) + ($data['children_count'] ?? 0);
+            
+            $checkIn = now()->parse($data['check_in_date']);
+            $checkOut = now()->parse($data['check_out_date']);
+            $data['nights_count'] = $checkIn->diffInDays($checkOut);
+
+            // Calcular Precios Base
+            $accommodation = Accommodation::findOrFail($data['accommodation_id']);
+            $prices = $pricingService->calculateStayTotal(
+                $accommodation,
+                $checkIn,
+                $checkOut,
+                $data['guests_count']
+            );
+
+            $data['nightly_subtotal'] = $prices['subtotal'];
+            $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
+            $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
+            
+            $total = $prices['subtotal'] + $data['cleaning_fee'] + $data['security_deposit'] - ($data['discount_total'] ?? 0) + ($data['tax_total'] ?? 0);
+            $data['total_amount'] = $total;
+
+            $quote = Quote::create($data);
+
+            DB::commit();
+            return redirect()->route('quotes.show', $quote)->with('success', 'Cotización creada exitosamente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Error al crear cotización: ' . $e->getMessage());
+        }
+    }
+
+    public function show(Quote $quote)
+    {
+        $this->authorize('view', $quote);
+        $quote->load(['accommodation', 'guest', 'createdBy', 'reservation']);
+        return view('quotes.show', compact('quote'));
+    }
+
+    public function edit(Quote $quote)
+    {
+        $this->authorize('update', $quote);
+        
+        if ($quote->status === QuoteStatus::Converted || $quote->reservation_id) {
+            return redirect()->route('quotes.show', $quote)->with('warning', 'No se puede editar una cotización ya convertida.');
+        }
+
+        $accommodations = Accommodation::all()->sortBy('name')->pluck('name', 'id')->prepend('Seleccionar alojamiento', '');
+        $guests = Guest::all()->sortBy('first_name')->mapWithKeys(function ($g) {
+            $doc = $g->document_number ? ' ('.$g->document_number.')' : '';
+            $phone = $g->phone ? ' - '.$g->phone : '';
+            return [$g->id => trim("{$g->first_name} {$g->last_name}{$doc}{$phone}")];
+        })->prepend('Seleccionar huésped', '');
+
+        return view('quotes.edit', compact('quote', 'accommodations', 'guests'));
+    }
+
+    public function update(UpdateQuoteRequest $request, Quote $quote, PricingService $pricingService)
+    {
+        $this->authorize('update', $quote);
+
+        if ($quote->status === QuoteStatus::Converted || $quote->reservation_id) {
+            return redirect()->route('quotes.show', $quote)->with('warning', 'No se puede editar una cotización ya convertida.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $data = $request->validated();
+            $data['guests_count'] = ($data['adults_count'] ?? 1) + ($data['children_count'] ?? 0);
+            
+            $checkIn = now()->parse($data['check_in_date']);
+            $checkOut = now()->parse($data['check_out_date']);
+            $data['nights_count'] = $checkIn->diffInDays($checkOut);
+
+            // Recalcular Precios
+            $accommodation = Accommodation::findOrFail($data['accommodation_id']);
+            $prices = $pricingService->calculateStayTotal(
+                $accommodation,
+                $checkIn,
+                $checkOut,
+                $data['guests_count']
+            );
+
+            $data['nightly_subtotal'] = $prices['subtotal'];
+            $total = $prices['subtotal'] + ($data['cleaning_fee'] ?? 0) + ($data['security_deposit'] ?? 0) - ($data['discount_total'] ?? 0) + ($data['tax_total'] ?? 0);
+            $data['total_amount'] = $total;
+
+            $quote->update($data);
+
+            DB::commit();
+            return redirect()->route('quotes.show', $quote)->with('success', 'Cotización actualizada.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Error al actualizar: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(Quote $quote)
+    {
+        $this->authorize('delete', $quote);
+        $quote->delete();
+        return redirect()->route('quotes.index')->with('success', 'Cotización eliminada.');
+    }
+
+    /**
+     * Convertir una cotización en una Venta (Reserva)
+     * Re-Chequea disponibilidad y preserva todos los montos de la cotización
+     */
+    public function convertToReservation(Request $request, Quote $quote, AvailabilityService $availabilityService)
+    {
+        $this->authorize('update', $quote);
+
+        if ($quote->status === QuoteStatus::Converted || $quote->reservation_id) {
+            return redirect()->route('quotes.show', $quote)->with('error', 'Esta cotización ya fue convertida.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Verificar disponibilidad ACTUAL (el usuario pudo haber tomado la cotización hace días)
+            $isAvailable = $availabilityService->isAccommodationAvailable(
+                $quote->accommodation_id,
+                $quote->check_in_date,
+                $quote->check_out_date
+            );
+
+            if (!$isAvailable) {
+                throw new \Exception('El alojamiento ya no se encuentra disponible para las fechas de la cotización.');
+            }
+
+            // 2. Crear la Reserva (Venta) copiando TODOS los snapshot financieros
+            $reservationCode = 'RES-' . strtoupper(substr(uniqid(rand(), true), -6));
+            
+            $reservationData = [
+                'code' => $reservationCode,
+                'quote_id' => $quote->id,
+                'accommodation_id' => $quote->accommodation_id,
+                'primary_guest_id' => $quote->guest_id,
+                'check_in_date' => $quote->check_in_date,
+                'check_out_date' => $quote->check_out_date,
+                'nights_count' => $quote->nights_count,
+                'status' => ReservationStatus::Pending,
+                'guests_count' => $quote->guests_count,
+                'adults_count' => $quote->adults_count,
+                'children_count' => $quote->children_count,
+                'nightly_subtotal' => $quote->nightly_subtotal,
+                'services_total' => $quote->services_total ?? 0,
+                'discount_total' => $quote->discount_total ?? 0,
+                'tax_total' => $quote->tax_total ?? 0,
+                'cleaning_fee' => $quote->cleaning_fee ?? 0,
+                'security_deposit' => $quote->security_deposit ?? 0,
+                'total_amount' => $quote->total_amount,
+                'rate_snapshot' => $quote->rate_snapshot,
+                'guest_notes' => $quote->guest_notes,
+                'internal_notes' => (is_string($quote->internal_notes) ? $quote->internal_notes : '') . "\n\n[System: Converted from Quote #{$quote->code} on " . now() . "]",
+                'created_by' => auth()->id(),
+                'source' => 'quote',
+            ];
+            
+            // Merge conditional: solo agregar services_snapshot si el modelo lo soporta (para evitar MassAssignmentException)
+            if (in_array('services_snapshot', (new Reservation())->getFillable())) {
+                $reservationData['services_snapshot'] = $quote->services_snapshot;
+            }
+
+            $reservation = Reservation::create($reservationData);
+
+            // 3. Actualizar la Cotización como Convertida
+            $quote->update([
+                'status' => QuoteStatus::Converted,
+                'reservation_id' => $reservation->id,
+            ]);
+
+            // 4. Crear Status History
+            if (class_exists(\App\Models\ReservationStatusHistory::class)) {
+                \App\Models\ReservationStatusHistory::create([
+                    'reservation_id' => $reservation->id,
+                    'status' => ReservationStatus::Pending->value, // Columna 'status'
+                    'old_status' => null, // Recién creado
+                    'new_status' => ReservationStatus::Pending->value, // Columna requerida por la BD
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Creado desde Cotización ' . $quote->code,
+                ]);
+            }
+
+            DB::commit();
+            
+            // Flujo exitoso: Redirigir a la FICHA DE DETALLES de la nueva Reserva (Ahora funciona gracias a la Vista Show)
+            return redirect()
+                ->route('reservations.show', $reservation)
+                ->with('success', '¡Conversión Exitosa! La cotización <b>' . $quote->code . '</b> se ha transformado en la Reserva <b>#' . $reservation->code . '</b>. Puedes gestionar los pagos y confirmar la estancia aquí.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'No se pudo convertir: ' . $e->getMessage());
+        }
+    }
+}

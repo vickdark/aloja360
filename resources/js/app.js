@@ -1,5 +1,5 @@
 import './bootstrap';
-import 'bootstrap';
+import * as bootstrap from 'bootstrap';
 import '@fortawesome/fontawesome-free/js/all.js';
 import Alpine from 'alpinejs';
 import TomSelect from 'tom-select';
@@ -22,6 +22,7 @@ import * as XLSX from 'xlsx';
 
 
 // Global Assignments
+window.bootstrap = bootstrap;
 window.Alpine = Alpine;
 window.TomSelect = TomSelect;
 window.Gridjs = { Grid, html };

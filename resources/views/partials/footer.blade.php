@@ -6,5 +6,6 @@
     </main>
 </div>
 @include('partials.alerts')
+@stack('scripts')
 </body>
 </html>

@@ -18,37 +18,86 @@
             @php
                 $user = auth()->user();
                 $role = $user ? $user->role : null;
-                $userPermissions = $role 
+
+                $excludedMenuSlugs = [
+                    'amenities.index',
+                    'rate_periods.index',
+                    'blocked_periods.index',
+                    'services.index',
+                    'expense_categories.index',
+                    'business.index',
+                    'expenses.index',
+                    'maintenance.index',
+                ];
+
+                $menuItems = $role
                     ? $role->permissions()
+                        ->where('is_menu', true)
                         ->where(function($q) {
                             $q->where('slug', 'LIKE', '%.index')
                               ->orWhere('slug', 'dashboard');
                         })
                         ->whereNotNull('module')
+                        ->whereNotIn('slug', $excludedMenuSlugs)
                         ->orderBy('order')
+                        ->orderBy('nombre')
                         ->get()
-                        ->groupBy('module')
                     : collect();
+
+                $menuTitles = [
+                    'dashboard'                          => ['label' => 'Dashboard',          'icon' => 'fa-solid fa-chart-line',        'order' => 1],
+                    'accommodations.index'               => ['label' => 'Alojamientos',       'icon' => 'fa-solid fa-house',             'order' => 10],
+                    'amenities.index'                    => ['label' => 'Amenidades',         'icon' => 'fa-solid fa-sparkles',          'order' => 11],
+                    'rate_periods.index'                 => ['label' => 'Temporadas',         'icon' => 'fa-solid fa-calendar-days',     'order' => 12],
+                    'blocked_periods.index'              => ['label' => 'Bloqueos',           'icon' => 'fa-solid fa-ban',               'order' => 13],
+                    'guests.index'                       => ['label' => 'Clientes',           'icon' => 'fa-solid fa-user-group',        'order' => 20],
+                    'quotes.index'                       => ['label' => 'Cotizaciones',       'icon' => 'fa-solid fa-file-invoice-dollar', 'order' => 30],
+                    'reservations.index'                 => ['label' => 'Reservas',           'icon' => 'fa-solid fa-calendar-check',    'order' => 35],
+                    'services.index'                     => ['label' => 'Servicios Extras',   'icon' => 'fa-solid fa-bell-concierge',    'order' => 36],
+                    'payments.index'                     => ['label' => 'Pagos',              'icon' => 'fa-solid fa-money-bill-wave',   'order' => 40],
+                    'expense_categories.index'           => ['label' => 'Categorías Gasto',   'icon' => 'fa-solid fa-tags',              'order' => 44],
+                    'expenses.index'                     => ['label' => 'Gastos',             'icon' => 'fa-solid fa-receipt',           'order' => 45],
+                    'cleaning.index'                     => ['label' => 'Limpieza',           'icon' => 'fa-solid fa-broom',             'order' => 50],
+                    'maintenance.index'                  => ['label' => 'Mantenimiento',      'icon' => 'fa-solid fa-wrench',            'order' => 55],
+                    'inventory.index'                    => ['label' => 'Inventario',         'icon' => 'fa-solid fa-boxes-stacked',     'order' => 57],
+                    'reports.index'                      => ['label' => 'Reportes',           'icon' => 'fa-solid fa-chart-pie',         'order' => 60],
+                    'usuarios.index'                     => ['label' => 'Usuarios',           'icon' => 'fa-solid fa-users',             'order' => 80],
+                    'roles.index'                        => ['label' => 'Seguridad',          'icon' => 'fa-solid fa-user-shield',       'order' => 90],
+                    'businesses.index'                   => ['label' => 'Negocios',           'icon' => 'fa-solid fa-building',          'order' => 99],
+                    'configuracion.index'                => ['label' => 'Configuración',      'icon' => 'fa-solid fa-gears',             'order' => 100],
+                ];
+
+                $finalItems = $menuItems->map(function ($perm) use ($menuTitles) {
+                    $meta = $menuTitles[$perm->slug] ?? null;
+                    if ($meta) {
+                        $perm->display_label = $meta['label'];
+                        $perm->display_icon  = $meta['icon'];
+                        $perm->display_order = $meta['order'];
+                    } else {
+                        $perm->display_label = $perm->nombre;
+                        $perm->display_icon  = $perm->icon ?: 'fa-solid fa-circle-dot';
+                        $perm->display_order = $perm->order ?: 500;
+                    }
+                    return $perm;
+                })->sortBy('display_order')->values();
             @endphp
 
-            @if($userPermissions->isEmpty())
+            @if($finalItems->isEmpty())
                 <div class="p-3 text-muted small">
                     <i class="fa-solid fa-circle-info me-1"></i>
                     No hay opciones de menú disponibles.
                 </div>
             @endif
 
-            @foreach($userPermissions as $module => $items)
+            @foreach($finalItems as $item)
                 @php
-                    // Obtenemos el primer item que suele ser el 'index' del módulo
-                    $mainItem = $items->first();
-                    $routePrefix = explode('.', $mainItem->slug)[0];
-                    $isActive = request()->routeIs($routePrefix . '.*') || request()->routeIs($mainItem->slug);
+                    $prefix = explode('.', $item->slug)[0];
+                    $isActive = request()->routeIs($prefix . '.*') || request()->routeIs($item->slug);
                 @endphp
-
-                <a class="nav-link {{ $isActive ? 'active' : '' }}" href="{{ Route::has($mainItem->slug) ? route($mainItem->slug) : '#' }}">
-                    <i class="{{ $mainItem->icon ?: 'fa-solid fa-circle-dot' }}"></i>
-                    <span class="app-link-text">{{ $module }}</span>
+                <a class="nav-link {{ $isActive ? 'active' : '' }}"
+                   href="{{ Route::has($item->slug) ? route($item->slug) : '#' }}">
+                    <i class="{{ $item->display_icon }}"></i>
+                    <span class="app-link-text">{{ $item->display_label }}</span>
                 </a>
             @endforeach
         </nav>

@@ -23,9 +23,11 @@ class PricingService
         $period = CarbonPeriod::create($checkIn, $checkOut->copy()->subDay());
         $subtotal = 0.0;
         
-        // Base rate del alojamiento
-        $basePrice = $accommodation->base_price;
-        $baseCapacity = $accommodation->base_capacity;
+        // Base rate del alojamiento (Validación Null Safety)
+        $basePrice = floatval($accommodation->base_price);
+        $baseCapacity = intval($accommodation->base_capacity ?? ($accommodation->max_guests ?? 1));
+        
+        if ($baseCapacity <= 0) $baseCapacity = 1;
         
         // Obtener todos los RatePeriods aplicables en las fechas
         $ratePeriods = RatePeriod::where('accommodation_id', $accommodationId)
@@ -38,7 +40,8 @@ class PricingService
             ->get();
             
         foreach ($period as $date) {
-            $nightPrice = $this->getPriceForNight($date, $basePrice, $baseCapacity, $guestsCount, $ratePeriods);
+            $safeBaseCapacity = $baseCapacity ?? 1; // Asegurar que nunca sea null
+            $nightPrice = $this->getPriceForNight($date, $basePrice, $safeBaseCapacity, $guestsCount, $ratePeriods);
             $subtotal += $nightPrice;
         }
 
@@ -55,8 +58,10 @@ class PricingService
         $checkOut = Carbon::parse($checkOutDate);
         $period = CarbonPeriod::create($checkIn, $checkOut->copy()->subDay());
         
-        $basePrice = $accommodation->base_price;
-        $baseCapacity = $accommodation->base_capacity;
+        // Base rate del alojamiento (Validación Null Safety)
+        $basePrice = floatval($accommodation->base_price);
+        $baseCapacity = intval($accommodation->base_capacity ?? ($accommodation->max_guests ?? 1));
+        if ($baseCapacity <= 0) $baseCapacity = 1;
         
         $ratePeriods = RatePeriod::where('accommodation_id', $accommodationId)
             ->where('status', 'active')
@@ -121,5 +126,61 @@ class PricingService
         }
         
         return (float) $price;
+    }
+
+    /**
+     * Helper método para generar el cálculo completo de la estancia usado en Cotizaciones y Reservas.
+     * Retorna un array con el subtotal y el detalle del snapshot de tarifas.
+     *
+     * @param Accommodation $accommodation
+     * @param \DateTimeInterface|string $checkIn
+     * @param \DateTimeInterface|string $checkOut
+     * @param int $guestsCount
+     * @return array{subtotal: float, snapshot: array, nights: int}
+     */
+    public function calculateStayTotal(Accommodation $accommodation, \DateTimeInterface|string $checkIn, \DateTimeInterface|string $checkOut, int $guestsCount): array
+    {
+        $checkIn = Carbon::parse($checkIn);
+        $checkOut = Carbon::parse($checkOut);
+        
+        $nights = $checkIn->diffInDays($checkOut);
+        
+        // Fallback seguro: si las propiedades base_capacity no existen o son nulas
+        $baseCapacity = $accommodation->base_capacity ?? ($accommodation->max_guests ?? 1);
+        $basePrice = $accommodation->base_price ?? 0;
+        
+        try {
+            // 1. Calcular Subtotal
+            $subtotal = $this->calculateNightlySubtotal(
+                $accommodation->id,
+                $checkIn->toDateString(),
+                $checkOut->toDateString(),
+                $guestsCount
+            );
+            
+            // 2. Generar Snapshot (para trazabilidad histórica)
+            $snapshot = $this->generateRateSnapshot(
+                $accommodation->id,
+                $checkIn->toDateString(),
+                $checkOut->toDateString(),
+                $guestsCount
+            );
+        } catch (\Exception $e) {
+            // Plan B: Si RatePeriods falla (p.ej, columnas faltantes)
+            $subtotal = $basePrice * $nights;
+            $snapshot = [
+                'fallback_calculation' => true,
+                'error' => $e->getMessage(),
+                'base_price' => $basePrice,
+                'nights' => $nights,
+                'manual' => true
+            ];
+        }
+
+        return [
+            'subtotal' => round($subtotal, 2),
+            'snapshot' => $snapshot,
+            'nights' => $nights
+        ];
     }
 }

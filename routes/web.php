@@ -13,6 +13,11 @@ use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\AccommodationController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\GuestController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\CleaningTaskController;
+use App\Http\Controllers\MaintenanceRequestController;
+use App\Http\Controllers\ExpenseController;
 
 Route::redirect('/', '/login');
 
@@ -24,24 +29,65 @@ Route::middleware('auth')->group(function () {
     
     // Aloja360 MVP Core Routes (Web Views)
     // Negocios
-    Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
-    Route::get('businesses/create', [BusinessController::class, 'create'])->name('businesses.create');
-    Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
+    Route::resource('businesses', BusinessController::class);
 
     // Reservas
-    Route::get('reservations', [ReservationController::class, 'index'])->name('reservations.index');
-    Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
-    Route::get('reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
-    Route::put('reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
     Route::post('reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
     Route::post('reservations/{reservation}/check-in', [ReservationController::class, 'checkIn'])->name('reservations.checkIn');
     Route::post('reservations/{reservation}/check-out', [ReservationController::class, 'checkOut'])->name('reservations.checkOut');
     Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+    Route::resource('reservations', ReservationController::class); // Reemplaza las rutas manuales y agrega create/edit/destroy
 
     // Alojamientos
-    Route::get('accommodations', [AccommodationController::class, 'index'])->name('accommodations.index');
     Route::get('accommodations/available', [AccommodationController::class, 'available'])->name('accommodations.available');
-    Route::get('accommodations/{accommodation}', [AccommodationController::class, 'show'])->name('accommodations.show');
+    Route::resource('accommodations', AccommodationController::class);
+
+    // Huéspedes
+    Route::resource('guests', GuestController::class);
+
+    // Pagos
+    Route::resource('payments', PaymentController::class);
+
+    // Limpieza
+    Route::resource('cleaning', CleaningTaskController::class)->parameters([
+        'cleaning' => 'cleaning' // to match $cleaning in controller
+    ]);
+
+    // Mantenimiento
+    Route::resource('maintenance', MaintenanceRequestController::class)->parameters([
+        'maintenance' => 'maintenance' // to match $maintenance in controller
+    ]);
+
+    // Gastos
+    Route::resource('expenses', ExpenseController::class);
+
+    // MANTENIMIENTO Y OPERACIONES (NUEVOS MODULOS)
+    // Amenidades (Servicios del Alojamiento)
+    Route::resource('amenities', \App\Http\Controllers\AmenityController::class);
+
+    // Temporadas / Tarifas
+    Route::resource('rate_periods', \App\Http\Controllers\RatePeriodController::class);
+
+    // Servicios Extras (Vendibles en Reservas)
+    Route::resource('services', \App\Http\Controllers\ServiceController::class);
+
+    // Bloqueos de Disponibilidad
+    Route::resource('blocked_periods', \App\Http\Controllers\BlockedPeriodController::class);
+
+    // Inventario
+    Route::resource('inventory', \App\Http\Controllers\InventoryItemController::class)->parameters([
+        'inventory' => 'inventory_item' 
+    ]);
+
+    // Categorías de Gastos
+    Route::resource('expense_categories', \App\Http\Controllers\ExpenseCategoryController::class);
+
+    // Cotizaciones
+    Route::post('quotes/{quote}/convert', [\App\Http\Controllers\QuoteController::class, 'convertToReservation'])->name('quotes.convert');
+    Route::resource('quotes', \App\Http\Controllers\QuoteController::class);
+
+    // Reportes
+    Route::get('reports', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
 
     // API Routes (AJAX calls)
     Route::prefix('api/v1')->group(function () {
@@ -63,6 +109,7 @@ Route::middleware('auth')->group(function () {
     
     // Gestión de Permisos (Sincronización)
     Route::post('permissions/sync', [PermissionController::class, 'sync'])->name('permissions.sync');
+    Route::get('permissions/sync-stream', [PermissionController::class, 'syncStream'])->name('permissions.sync_stream');
     // Perfil y Seguridad
     Route::put('/password', [PasswordController::class, 'update'])->name('password.update.ajax');
 });

@@ -9,10 +9,15 @@ use App\Actions\ConfirmReservationAction;
 use App\Actions\CreateReservationAction;
 use App\Http\Requests\StoreReservationRequest;
 use App\Http\Requests\UpdateReservationRequest;
+use App\Models\Accommodation;
+use App\Models\Guest;
 use App\Models\Reservation;
+use App\Services\PricingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
 {
@@ -41,22 +46,87 @@ class ReservationController extends Controller
             return abort(403, 'No autorizado para este negocio.');
         }
 
-        $reservations = Reservation::with(['accommodation', 'primaryGuest'])
-            ->orderBy('check_in_date', 'asc')
-            ->paginate(20);
+        $query = Reservation::with(['accommodation', 'primaryGuest']);
+
+        // Filtro de Búsqueda (Implementación requerida por la nueva UI)
+        if ($search = $request->get('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('code', 'LIKE', "%{$search}%")
+                  ->orWhereHas('primaryGuest', function($gq) use ($search) {
+                      $gq->where('first_name', 'LIKE', "%{$search}%")
+                         ->orWhere('last_name', 'LIKE', "%{$search}%")
+                         ->orWhere('phone', 'LIKE', "%{$search}%")
+                         ->orWhere('email', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('accommodation', function($aq) use ($search) {
+                      $aq->where('name', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filtro por Estado (KPI Cards)
+        if ($status = $request->get('status')) {
+            // Mapeo seguro por si el valor no pertenece al Enum
+            try {
+                $statusEnum = \App\Enums\ReservationStatus::from($status);
+                $query->where('status', $statusEnum);
+            } catch (\ValueError $e) {
+                // Estado inválido, ignorar filtro
+            }
+        }
+
+        // Conteos para KPI (Cálculo directo en BD para performance)
+        $pending_count = Reservation::where('status', \App\Enums\ReservationStatus::Pending)->count();
+        $confirmed_count = Reservation::where('status', \App\Enums\ReservationStatus::Confirmed)->count();
+        $checked_in_count = Reservation::where('status', \App\Enums\ReservationStatus::CheckedIn)->count();
+        $checked_out_count = Reservation::where('status', \App\Enums\ReservationStatus::CheckedOut)->count();
+
+        $reservations = $query->orderBy('check_in_date', 'desc')->paginate(10);
 
         if ($request->wantsJson()) {
             return response()->json($reservations);
         }
 
-        return view('reservations.index', compact('reservations'));
+        return view('reservations.index', compact(
+            'reservations', 
+            'pending_count', 
+            'confirmed_count', 
+            'checked_in_count', 
+            'checked_out_count'
+        ));
     }
 
-    public function store(StoreReservationRequest $request, CreateReservationAction $action): JsonResponse
+    public function store(StoreReservationRequest $request, CreateReservationAction $action, PricingService $pricing): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         try {
             $data = $request->validated();
             $data['created_by'] = $request->user()->id;
+
+            // Si no se proveen valores financieros manualmente, calcularlos automaticamente
+            if (!isset($data['nightly_subtotal']) || !isset($data['total_amount'])) {
+                $guests = $data['guests_count'] ?? ($data['adults_count'] ?? 2) + ($data['children_count'] ?? 0);
+                $prices = $pricing->calculateStayTotal(
+                    $data['accommodation_id'],
+                    $data['check_in_date'],
+                    $data['check_out_date'],
+                    $guests
+                );
+                
+                $data['nights_count'] = $prices['nights'];
+                $data['nightly_subtotal'] = $prices['subtotal'];
+                $data['services_total'] = $data['services_total'] ?? 0;
+                $data['discount_total'] = $data['discount_total'] ?? 0;
+                $data['tax_total'] = $data['tax_total'] ?? 0;
+                $data['cleaning_fee'] = $data['cleaning_fee'] ?? Accommodation::find($data['accommodation_id'])?->cleaning_fee ?? 0;
+                $data['security_deposit'] = $data['security_deposit'] ?? Accommodation::find($data['accommodation_id'])?->security_deposit ?? 0;
+                $data['rate_snapshot'] = $prices['snapshot'];
+                
+                $data['total_amount'] = $data['nightly_subtotal'] 
+                    + $data['services_total'] 
+                    - $data['discount_total'] 
+                    + $data['tax_total'] 
+                    + $data['cleaning_fee'];
+            }
 
             $reservation = $action->execute($data);
 
@@ -65,11 +135,14 @@ class ReservationController extends Controller
                 'data' => $reservation->load(['accommodation', 'primaryGuest']),
             ], 201);
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
-    public function show(Reservation $reservation): JsonResponse
+    public function show(Reservation $reservation): \Illuminate\Http\Response|\Illuminate\View\View|JsonResponse
     {
         $this->authorize('view', $reservation);
 
@@ -81,12 +154,24 @@ class ReservationController extends Controller
             'statusHistories.changedBy',
         ]);
 
-        return response()->json($reservation);
-    }
+        // Custom attribute calculation
+        $reservation->loadMissing('payments');
+        $confirmedPayments = $reservation->payments->filter(function($pay) {
+            return in_array($pay->status->value, ['confirmed', 'completed']) 
+                && in_array($pay->type->value, ['payment', 'deposit']);
+        })->sum('amount');
+        
+        $refunds = $reservation->payments->filter(function($pay) {
+            return in_array($pay->status->value, ['confirmed', 'completed'])
+                && in_array($pay->type->value, ['refund', 'deposit_return']);
+        })->sum('amount');
 
-    public function update(UpdateReservationRequest $request, Reservation $reservation): JsonResponse
-    {
-        $reservation->update($request->validated());
+        $reservation->setAttribute('confirmed_payments_sum', $confirmedPayments);
+        $reservation->setAttribute('outstanding_balance', max(0, $reservation->total_amount - $confirmedPayments + $refunds));
+
+        if (request()->wantsJson()) {
+            return response()->json($reservation);
+        }
 
         return response()->json([
             'message' => 'Reserva actualizada exitosamente',
@@ -94,35 +179,29 @@ class ReservationController extends Controller
         ]);
     }
 
-    public function confirm(Reservation $reservation, Request $request, ConfirmReservationAction $action): JsonResponse
+    public function confirm(Reservation $reservation, Request $request, ConfirmReservationAction $action): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         $this->authorize('update', $reservation);
 
         try {
-            $notes = $request->input('notes', 'Confirmación manual');
+            $notes = $request->input('notes', 'Confirmación manual desde interfaz');
             $action->execute($reservation, $request->user()->id, $notes);
 
-            return response()->json(['message' => 'Reserva confirmada exitosamente', 'data' => $reservation]);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Reserva confirmada exitosamente', 'data' => $reservation]);
+            }
+            
+            return back()->with('success', '¡Reserva Confirmada! La disponibilidad ha sido bloqueada.');
+            
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
-    public function checkIn(Reservation $reservation, Request $request, CheckInReservationAction $action): JsonResponse
-    {
-        $this->authorize('update', $reservation);
-
-        try {
-            $notes = $request->input('notes', '');
-            $action->execute($reservation, $request->user()->id, $notes);
-
-            return response()->json(['message' => 'Check-in realizado exitosamente', 'data' => $reservation]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
-    }
-
-    public function checkOut(Reservation $reservation, Request $request, CheckOutReservationAction $action): JsonResponse
+    public function checkIn(Reservation $reservation, Request $request, CheckInReservationAction $action): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         $this->authorize('update', $reservation);
 
@@ -130,13 +209,43 @@ class ReservationController extends Controller
             $notes = $request->input('notes', '');
             $action->execute($reservation, $request->user()->id, $notes);
 
-            return response()->json(['message' => 'Check-out realizado exitosamente', 'data' => $reservation]);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Check-in realizado exitosamente', 'data' => $reservation]);
+            }
+            
+            return back()->with('success', '¡Check-In Realizado! El huésped ha sido registrado.');
+            
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
-    public function cancel(Reservation $reservation, Request $request, CancelReservationAction $action): JsonResponse
+    public function checkOut(Reservation $reservation, Request $request, CheckOutReservationAction $action): \Illuminate\Http\RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', $reservation);
+
+        try {
+            $notes = $request->input('notes', '');
+            $action->execute($reservation, $request->user()->id, $notes);
+
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Check-out realizado exitosamente', 'data' => $reservation]);
+            }
+            
+            return back()->with('success', '¡Check-Out Realizado! Se generó la tarea de limpieza automáticamente.');
+            
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function cancel(Reservation $reservation, Request $request, CancelReservationAction $action): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         $this->authorize('update', $reservation);
 
@@ -150,9 +259,17 @@ class ReservationController extends Controller
                 $request->input('notes', '')
             );
 
-            return response()->json(['message' => 'Reserva cancelada exitosamente', 'data' => $reservation]);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Reserva cancelada exitosamente', 'data' => $reservation]);
+            }
+            
+            return back()->with('success', '¡Reserva Cancelada! El alojamiento está disponible nuevamente.');
+            
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }

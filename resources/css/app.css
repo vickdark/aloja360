@@ -193,6 +193,61 @@ body {
     background: var(--sidebar-card);
 }
 
+/* Acordeones del menú */
+.app-sidebar-nav .module-accordion .nav-group-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+
+.app-sidebar-nav .module-accordion .nav-group-toggle[aria-expanded="true"] .module-chevron {
+    transform: rotate(-180deg);
+}
+.app-sidebar-nav .module-chevron {
+    transition: transform 0.25s ease;
+}
+
+.app-sidebar-nav .module-accordion .nav-pills .nav-link {
+    margin: 2px 0 2px 0;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+}
+
+.app-sidebar-nav .module-accordion .nav-pills .nav-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.text-sidebar-muted {
+    color: var(--sidebar-muted) !important;
+}
+
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08) !important;
+}
+
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+.quick-access-card:hover {
+    border-color: rgba(99, 102, 241, 0.25);
+}
+.quick-access-card:hover .quick-access-icon {
+    transform: scale(1.06);
+}
+.quick-access-icon {
+    transition: transform 0.2s ease;
+}
+.quick-access-card:hover .fa-arrow-right {
+    transform: translateX(3px);
+    opacity: 1 !important;
+    color: #6366f1;
+}
+
 .app-user-card {
     background: var(--sidebar-card);
     padding: 12px;

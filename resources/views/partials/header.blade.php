@@ -28,6 +28,7 @@
         .text-primary { color: var(--bs-primary) !important; }
         .bg-primary { background-color: var(--bs-primary) !important; }
     </style>
+    @stack('styles')
 </head>
 <body class="app-shell">
 <div class="sidebar-overlay" onclick="document.body.classList.remove('sidebar-open')"></div>

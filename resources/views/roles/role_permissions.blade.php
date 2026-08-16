@@ -25,9 +25,7 @@
 
         <div class="row g-4">
             @php
-                $groupedPermissions = $permissions->groupBy(function($item) {
-                    return explode('.', $item->slug)[0];
-                });
+                $groupedPermissions = $permissions->groupBy('module');
             @endphp
 
             @foreach($groupedPermissions as $module => $modulePermissions)

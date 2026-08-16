@@ -79,4 +79,12 @@ class AvailabilityService
             })
             ->get();
     }
+
+    /**
+     * Alias semántico para mantener la compatibilidad con controladores que esperan isAccommodationAvailable()
+     */
+    public function isAccommodationAvailable(int $accommodationId, string $checkInDate, string $checkOutDate, ?int $excludeReservationId = null): bool
+    {
+        return $this->isAvailable($accommodationId, $checkInDate, $checkOutDate, $excludeReservationId);
+    }
 }

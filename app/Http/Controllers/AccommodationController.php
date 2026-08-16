@@ -18,24 +18,28 @@ class AccommodationController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Accommodation::class);
+        $businessId = $request->query('business_id', $request->user()->current_business_id ?? $request->user()->businesses()->first()?->id);
 
-        $query = Accommodation::with('amenities');
+        if (! $businessId) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'El business_id es requerido'], 400);
+            }
 
-        if ($request->search) {
-            $query->where('name', 'LIKE', "%{$request->search}%")
-                ->orWhere('code', 'LIKE', "%{$request->search}%");
+            return redirect()->route('dashboard')->with('error', 'Debe seleccionar un negocio.');
         }
 
-        if ($request->type) {
-            $query->where('type', $request->type);
+        /** @var \App\Models\Usuarios\Usuario $user */
+        $user = $request->user();
+
+        if (! $user->hasPermission('accommodations.index')) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'No autorizado para este negocio'], 403);
+            }
+
+            return abort(403, 'No autorizado para este negocio.');
         }
 
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-
-        $accommodations = $query->latest()->paginate(15)->withQueryString();
+        $accommodations = Accommodation::where('business_id', $businessId)->get();
 
         if ($request->wantsJson()) {
             return response()->json($accommodations);
@@ -140,6 +144,15 @@ class AccommodationController extends Controller
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
         ]);
+
+        $businessId = $request->input('business_id');
+
+        /** @var \App\Models\Usuarios\Usuario $user */
+        $user = $request->user();
+
+        if (! $user->hasPermission('accommodations.index')) {
+            return response()->json(['message' => 'No autorizado para este negocio'], 403);
+        }
 
         $availableAccommodations = $availabilityService->getAvailableAccommodations(
             $request->input('check_in_date'),

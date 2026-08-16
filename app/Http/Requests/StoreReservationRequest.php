@@ -12,7 +12,16 @@ class StoreReservationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $businessId = $this->input('business_id');
+
+        if (! $businessId) {
+            return false;
+        }
+
+        /** @var \App\Models\Usuarios\Usuario $user */
+        $user = $this->user();
+
+        return $user && $user->hasPermission('reservations.manage');
     }
 
     /**
@@ -22,8 +31,8 @@ class StoreReservationRequest extends FormRequest
     {
         return [
             'accommodation_id' => [
-                'required', 
-                'integer', 
+                'required',
+                'integer',
                 'exists:accommodations,id',
             ],
             'primary_guest_id' => ['required', 'integer', 'exists:guests,id'],

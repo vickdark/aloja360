@@ -12,7 +12,7 @@ class ReservationPolicy
      */
     public function viewAny(Usuario $usuario): bool
     {
-        return true;
+        return $usuario->hasPermission('reservations.index');
     }
 
     /**
@@ -20,7 +20,7 @@ class ReservationPolicy
      */
     public function view(Usuario $usuario, Reservation $reservation): bool
     {
-        return true;
+        return $usuario->hasPermission('reservations.index');
     }
 
     /**
@@ -28,7 +28,7 @@ class ReservationPolicy
      */
     public function create(Usuario $usuario): bool
     {
-        return true;
+        return $usuario->hasPermission('reservations.manage');
     }
 
     /**
@@ -36,7 +36,7 @@ class ReservationPolicy
      */
     public function update(Usuario $usuario, Reservation $reservation): bool
     {
-        return true;
+        return $usuario->hasPermission('reservations.manage');
     }
 
     /**
@@ -44,6 +44,6 @@ class ReservationPolicy
      */
     public function delete(Usuario $usuario, Reservation $reservation): bool
     {
-        return true;
+        return $usuario->hasPermission('reservations.manage');
     }
 }

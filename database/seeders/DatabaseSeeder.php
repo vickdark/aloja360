@@ -61,7 +61,6 @@ class DatabaseSeeder extends Seeder
 
         $businessRoles = [
             ['nombre' => 'Propietario', 'slug' => 'owner', 'descripcion' => 'Acceso total al negocio'],
-            ['nombre' => 'Administrador de Negocio', 'slug' => 'administrator', 'descripcion' => 'Gestiona alojamientos, reservas, clientes, pagos'],
             ['nombre' => 'Recepcionista', 'slug' => 'receptionist', 'descripcion' => 'Gestiona disponibilidad, cotizaciones, reservas, check-in/out'],
             ['nombre' => 'Contador', 'slug' => 'accountant', 'descripcion' => 'Gestiona pagos, ingresos, gastos, reportes financieros'],
             ['nombre' => 'Personal de Limpieza', 'slug' => 'cleaner', 'descripcion' => 'Solo tareas de limpieza asignadas'],

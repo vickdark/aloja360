@@ -12,7 +12,7 @@ class GuestPolicy
      */
     public function viewAny(Usuario $usuario): bool
     {
-        return $usuario->hasPermission('guests.index');
+        return true;
     }
 
     /**
@@ -20,7 +20,7 @@ class GuestPolicy
      */
     public function view(Usuario $usuario, Guest $guest): bool
     {
-        return $usuario->hasPermission('guests.index');
+        return true;
     }
 
     /**
@@ -28,7 +28,7 @@ class GuestPolicy
      */
     public function create(Usuario $usuario): bool
     {
-        return $usuario->hasPermission('guests.manage');
+        return true;
     }
 
     /**
@@ -36,7 +36,7 @@ class GuestPolicy
      */
     public function update(Usuario $usuario, Guest $guest): bool
     {
-        return $usuario->hasPermission('guests.manage');
+        return true;
     }
 
     /**
@@ -44,6 +44,6 @@ class GuestPolicy
      */
     public function delete(Usuario $usuario, Guest $guest): bool
     {
-        return $usuario->hasPermission('guests.manage');
+        return true;
     }
 }

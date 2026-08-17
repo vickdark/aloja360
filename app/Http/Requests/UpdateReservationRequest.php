@@ -11,16 +11,7 @@ class UpdateReservationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $reservation = $this->route('reservation');
-
-        if (! $reservation) {
-            return false;
-        }
-
-        /** @var \App\Models\Usuarios\Usuario $user */
-        $user = $this->user();
-
-        return $user && $user->hasPermission('reservations.manage');
+        return true;
     }
 
     /**

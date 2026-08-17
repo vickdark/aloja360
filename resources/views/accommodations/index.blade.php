@@ -5,7 +5,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <h1 class="h3 mb-0 text-gray-800 d-flex align-items-center flex-wrap gap-2">
             <i class="fa-solid fa-house text-primary me-2"></i> Gestión de Alojamientos
-            <span class="badge bg-light text-dark ms-3 rounded-pill fs-6">{{ $accommodations->total() }} Total</span>
+            
         </h1>
         <div class="d-flex flex-wrap gap-2">
             <form action="{{ url()->current() }}" method="GET" class="input-group" style="max-width: 350px; width: 100%;">
@@ -209,11 +209,7 @@
         @endforelse
     </div>
 
-    @if($accommodations->hasPages())
-        <div class="mt-5 d-flex justify-content-center">
-            {{ $accommodations->withQueryString()->links() }}
-        </div>
-    @endif
+    
 </div>
 
 <style>

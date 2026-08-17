@@ -25,26 +25,7 @@ class ReservationController extends Controller
 
     public function index(Request $request)
     {
-        $businessId = $request->query('business_id', $request->user()->current_business_id ?? $request->user()->businesses()->first()?->id);
-
-        if (! $businessId) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'El business_id es requerido'], 400);
-            }
-
-            return redirect()->route('dashboard')->with('error', 'Debe seleccionar un negocio.');
-        }
-
-        /** @var \App\Models\Usuarios\Usuario $user */
-        $user = $request->user();
-
-        if (! $user->hasPermission('reservations.index')) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'No autorizado para este negocio'], 403);
-            }
-
-            return abort(403, 'No autorizado para este negocio.');
-        }
+        $this->authorize('viewAny', Reservation::class);
 
         $query = Reservation::with(['accommodation', 'primaryGuest']);
 
@@ -130,10 +111,113 @@ class ReservationController extends Controller
 
             $reservation = $action->execute($data);
 
-            return response()->json([
-                'message' => 'Reserva creada exitosamente',
-                'data' => $reservation->load(['accommodation', 'primaryGuest']),
-            ], 201);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Reserva creada exitosamente',
+                    'data' => $reservation->load(['accommodation', 'primaryGuest'])
+                ], 201);
+            }
+
+            return redirect()
+                ->route('reservations.show', $reservation)
+                ->with('success', '¡Reserva creada exitosamente! Código generado: ' . $reservation->code);
+
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function create()
+    {
+        $this->authorize('create', Reservation::class);
+
+        $accommodations = Accommodation::orderBy('name')->get();
+        $guests = Guest::orderBy('first_name')->get();
+        
+        // Valores por defecto del formulario
+        $defaults = [
+            'check_in_date' => Carbon::now()->addDay()->format('Y-m-d'),
+            'check_out_date' => Carbon::now()->addDays(2)->format('Y-m-d'),
+            'guests_count' => 2,
+            'adults_count' => 2,
+            'children_count' => 0,
+            'status' => \App\Enums\ReservationStatus::Pending->value,
+            'source' => 'manual',
+        ];
+
+        return view('reservations.create', compact('accommodations', 'guests', 'defaults'));
+    }
+
+    public function edit(Reservation $reservation)
+    {
+        $this->authorize('update', $reservation);
+
+        $accommodations = Accommodation::orderBy('name')->get();
+        $guests = Guest::orderBy('first_name')->get();
+
+        return view('reservations.edit', compact('reservation', 'accommodations', 'guests'));
+    }
+
+    public function update(UpdateReservationRequest $request, Reservation $reservation, PricingService $pricing): \Illuminate\Http\RedirectResponse|JsonResponse
+    {
+        try {
+            $data = $request->validated();
+
+            // Si las fechas o alojamiento cambiaron, recalcular precios
+            $datesChanged = $reservation->check_in_date->format('Y-m-d') !== $request->input('check_in_date')
+                || $reservation->check_out_date->format('Y-m-d') !== $request->input('check_out_date')
+                || $reservation->accommodation_id !== $request->input('accommodation_id');
+
+            if ($datesChanged) {
+                $guests = $data['guests_count'] ?? ($data['adults_count'] ?? $reservation->guests_count);
+                $prices = $pricing->calculateStayTotal(
+                    $data['accommodation_id'],
+                    $data['check_in_date'],
+                    $data['check_out_date'],
+                    $guests
+                );
+                
+                $data['nights_count'] = $prices['nights'];
+                $data['nightly_subtotal'] = $prices['subtotal'];
+                $data['rate_snapshot'] = $prices['snapshot'];
+                $data['total_amount'] = $data['nightly_subtotal'] 
+                    + ($data['services_total'] ?? 0) 
+                    - ($data['discount_total'] ?? 0) 
+                    + ($data['tax_total'] ?? 0) 
+                    + ($data['cleaning_fee'] ?? 0);
+            }
+
+            $oldStatus = $reservation->status;
+            $newStatus = $data['status'] ?? $reservation->status;
+            
+            $reservation->update($data);
+
+            // Si cambió el estado manualmente, guardar en histórico
+            if ($oldStatus !== $newStatus) {
+                \App\Models\ReservationStatusHistory::create([
+                    'reservation_id' => $reservation->id,
+                    'status' => $newStatus->value,
+                    'old_status' => $oldStatus->value,
+                    'new_status' => $newStatus->value,
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Cambio de estado manual desde edición de reserva.',
+                ]);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Reserva actualizada exitosamente',
+                    'data' => $reservation
+                ]);
+            }
+
+            return redirect()
+                ->route('reservations.show', $reservation)
+                ->with('success', '¡Reserva actualizada exitosamente!');
+
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
@@ -147,11 +231,12 @@ class ReservationController extends Controller
         $this->authorize('view', $reservation);
 
         $reservation->load([
-            'accommodation',
-            'primaryGuest',
-            'services',
+            'accommodation', 
+            'primaryGuest', 
+            'services', 
             'payments',
-            'statusHistories.changedBy',
+            'createdBy',
+            'statusHistories.changedBy'
         ]);
 
         // Custom attribute calculation
@@ -173,9 +258,8 @@ class ReservationController extends Controller
             return response()->json($reservation);
         }
 
-        return response()->json([
-            'message' => 'Reserva actualizada exitosamente',
-            'data' => $reservation,
+        return view('reservations.show', [
+            'reservation' => $reservation,
         ]);
     }
 
@@ -253,9 +337,9 @@ class ReservationController extends Controller
 
         try {
             $action->execute(
-                $reservation,
-                $request->input('reason'),
-                $request->user()->id,
+                $reservation, 
+                $request->input('reason'), 
+                $request->user()->id, 
                 $request->input('notes', '')
             );
 

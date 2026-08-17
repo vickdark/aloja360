@@ -313,6 +313,27 @@ maintenance
 blocked
 ```
 
+## Modelos de precio por alojamiento
+
+Cada alojamiento define el modelo de cobro por defecto mediante `pricing_type` (Enum `PricingType`):
+
+```text
+per_accommodation  — Tarifa plana por alojamiento/noche (comportamiento tradicional).
+                    Usa accommodation.base_price y rate_periods.price_per_night.
+                    Aplica cargo extra por huéspedes adicionales solo cuando guests_count > base_capacity.
+
+per_person         — Tarifa variable por persona/noche.
+                    Usa accommodation.price_per_person y rate_periods.price_per_person.
+                    Precio_noche = precio_por_persona × guests_count (mínimo 1).
+```
+
+Notas:
+- `price_per_person` es `decimal(14,2)` y vive en `accommodations`.
+- El `PricingType` se almacena como **snapshot histórico** también en `reservations.pricing_type` y `quotes.pricing_type`.
+- Una reserva/cotización puede sobreescribir el `pricing_type` por defecto del alojamiento (caso: el cliente no lleva toda la capacidad).
+- La entidad encargada de aplicar la lógica: `App\Services\PricingService`.
+- El `rate_snapshot` de Quote/Reservation debe persistir `pricing_type`, `base_price`, `price_per_person` y `guests_count` para trazabilidad histórica.
+
 ## Regla fundamental
 
 El estado operativo de un alojamiento y su disponibilidad por fechas son conceptos relacionados pero diferentes.

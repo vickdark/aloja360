@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PricingType;
 use App\Models\Accommodation;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class StoreReservationRequest extends FormRequest
 {
@@ -26,6 +28,7 @@ class StoreReservationRequest extends FormRequest
                 'integer', 
                 'exists:accommodations,id',
             ],
+            'pricing_type' => ['nullable', new Enum(PricingType::class)],
             'primary_guest_id' => ['required', 'integer', 'exists:guests,id'],
             'check_in_date' => ['required', 'date', 'after_or_equal:today'],
             'check_out_date' => ['required', 'date', 'after:check_in_date'],
@@ -35,6 +38,13 @@ class StoreReservationRequest extends FormRequest
             'source' => ['nullable', 'string', 'max:50'],
             'guest_notes' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
+            'cleaning_fee' => ['nullable', 'numeric', 'min:0'],
+            'security_deposit' => ['nullable', 'numeric', 'min:0'],
+            'discount_total' => ['nullable', 'numeric', 'min:0'],
+            'tax_total' => ['nullable', 'numeric', 'min:0'],
+            'nightly_subtotal' => ['nullable', 'numeric', 'min:0'],
+            'total_amount' => ['nullable', 'numeric', 'min:0'],
+            'status' => ['nullable'],
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AccommodationStatus;
 use App\Enums\AccommodationType;
+use App\Enums\PricingType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,8 @@ class Accommodation extends Model
         'beds',
         'bathrooms',
         'base_price',
+        'pricing_type',
+        'price_per_person',
         'cleaning_fee',
         'security_deposit',
         'weekend_price_modifier',
@@ -46,7 +49,9 @@ class Accommodation extends Model
         return [
             'type' => AccommodationType::class,
             'status' => AccommodationStatus::class,
+            'pricing_type' => PricingType::class,
             'base_price' => 'decimal:2',
+            'price_per_person' => 'decimal:2',
             'cleaning_fee' => 'decimal:2',
             'security_deposit' => 'decimal:2',
             'weekend_price_modifier' => 'decimal:2',

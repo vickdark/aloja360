@@ -90,9 +90,12 @@ class ReservationController extends Controller
                     $data['accommodation_id'],
                     $data['check_in_date'],
                     $data['check_out_date'],
-                    $guests
+                    $guests,
+                    $data['pricing_type'] ?? null
                 );
-                
+
+                $data['pricing_type'] = $prices['pricing_type'];
+
                 $data['nights_count'] = $prices['nights'];
                 $data['nightly_subtotal'] = $prices['subtotal'];
                 $data['services_total'] = $data['services_total'] ?? 0;
@@ -169,7 +172,8 @@ class ReservationController extends Controller
             // Si las fechas o alojamiento cambiaron, recalcular precios
             $datesChanged = $reservation->check_in_date->format('Y-m-d') !== $request->input('check_in_date')
                 || $reservation->check_out_date->format('Y-m-d') !== $request->input('check_out_date')
-                || $reservation->accommodation_id !== $request->input('accommodation_id');
+                || $reservation->accommodation_id !== $request->input('accommodation_id')
+                || ($request->filled('pricing_type') && ((string) $reservation->pricing_type?->value !== (string) $request->input('pricing_type')));
 
             if ($datesChanged) {
                 $guests = $data['guests_count'] ?? ($data['adults_count'] ?? $reservation->guests_count);
@@ -177,9 +181,12 @@ class ReservationController extends Controller
                     $data['accommodation_id'],
                     $data['check_in_date'],
                     $data['check_out_date'],
-                    $guests
+                    $guests,
+                    $data['pricing_type'] ?? null
                 );
-                
+
+                $data['pricing_type'] = $prices['pricing_type'];
+
                 $data['nights_count'] = $prices['nights'];
                 $data['nightly_subtotal'] = $prices['subtotal'];
                 $data['rate_snapshot'] = $prices['snapshot'];

@@ -46,11 +46,27 @@
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">Alojamiento</label>
                                 <select name="accommodation_id" id="accommodation_id" class="form-select form-select-lg @error('accommodation_id') is-invalid @enderror" required>
-                                    @foreach($accommodations as $id => $name)
-                                        <option value="{{ $id }}" {{ (old('accommodation_id') ?? $quote->accommodation_id) == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                    <option value="">Seleccionar alojamiento</option>
+                                    @foreach($accommodations as $acc)
+                                        <option value="{{ $acc->id }}" data-pricing="{{ $acc->pricing_type?->value ?? 'per_accommodation' }}" {{ (old('accommodation_id') ?? $quote->accommodation_id) == $acc->id ? 'selected' : '' }}>{{ $acc->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('accommodation_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">
+                                    <i class="fas fa-tags me-1"></i> Tipo de Tarifa
+                                </label>
+                                <select name="pricing_type" id="pricing_type" class="form-select form-select-lg @error('pricing_type') is-invalid @enderror">
+                                    @foreach(\App\Enums\PricingType::cases() as $pt)
+                                        <option value="{{ $pt->value }}" {{ (old('pricing_type') ?? $quote->pricing_type?->value) == $pt->value ? 'selected' : '' }}>
+                                            {{ $pt->label() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Se sugiere según el alojamiento, pero puedes sobreescribirlo.</div>
+                                @error('pricing_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
@@ -201,6 +217,23 @@ function adjustVal(id, change) {
     if(val < min) val = min;
     input.value = val;
 }
+
+function syncPricingFromAccommodation() {
+    const accSel = document.getElementById('accommodation_id');
+    const pricingSel = document.getElementById('pricing_type');
+    if (!accSel || !pricingSel) return;
+    const selectedOpt = accSel.options[accSel.selectedIndex];
+    const suggested = selectedOpt ? selectedOpt.getAttribute('data-pricing') : null;
+    if (suggested) {
+        // Solo setear si el cambio fue por interacción del usuario (no al cargar)
+        const hadOldValue = @json(old('pricing_type') !== null);
+        if (!hadOldValue) {
+            pricingSel.value = suggested;
+        }
+    }
+}
+
+document.getElementById('accommodation_id').addEventListener('change', syncPricingFromAccommodation);
 </script>
 
 <style>

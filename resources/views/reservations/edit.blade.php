@@ -71,8 +71,11 @@
                                 <select name="accommodation_id" id="accommodation_id" class="form-select form-select-lg @error('accommodation_id') is-invalid @enderror" 
                                     @disabled($reservation->status->value === 'checked_out' || $reservation->status->value === 'cancelled') required>
                                     @foreach($accommodations as $a)
+                                        @php($pricingType = is_a($a->pricing_type, \App\Enums\PricingType::class) ? $a->pricing_type : \App\Enums\PricingType::tryFrom($a->pricing_type) ?? \App\Enums\PricingType::PerAccommodation)
                                         <option value="{{ $a->id }}" 
                                             data-price="{{ $a->base_price }}"
+                                            data-price-per-person="{{ $a->price_per_person ?? 0 }}"
+                                            data-pricing-type="{{ $pricingType->value }}"
                                             {{ $reservation->accommodation_id == $a->id ? 'selected' : '' }}>
                                             {{ $a->name }} - {{ $a->type->label() }}
                                         </option>
@@ -126,6 +129,23 @@
                                 <div class="form-text text-danger small fw-bold">
                                     <i class="fa-solid fa-triangle-exclamation me-1"></i> Cambiar el estado aquí NO ejecuta las acciones automáticas (Limpieza, etc). Úsalo solo para correcciones manuales.
                                 </div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-muted">
+                                    <i class="fa-solid fa-sack-dollar me-1"></i> Forma de Cobro
+                                </label>
+                                @php($resPricingType = is_a($reservation->pricing_type, \App\Enums\PricingType::class) ? $reservation->pricing_type : (\App\Enums\PricingType::tryFrom($reservation->pricing_type) ?? \App\Enums\PricingType::PerAccommodation))
+                                <select name="pricing_type" id="pricing_type" class="form-select form-select-lg @error('pricing_type') is-invalid @enderror"
+                                    @disabled($reservation->status->value === 'checked_out' || $reservation->status->value === 'cancelled')>
+                                    @foreach(\App\Enums\PricingType::cases() as $pt)
+                                        <option value="{{ $pt->value }}" {{ old('pricing_type', $resPricingType->value) == $pt->value ? 'selected' : '' }}>
+                                            {{ $pt->label() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Por defecto toma la configuración del alojamiento. Cámbialo solo si quieres cobrar distinto esta reserva.</div>
+                                @error('pricing_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
                     </div>

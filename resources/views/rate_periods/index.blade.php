@@ -8,6 +8,9 @@
             <span class="badge bg-light text-dark ms-3 rounded-pill fs-6">{{ $ratePeriods->total() }} Reglas</span>
         </h1>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('accommodations.index') }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm" title="Volver a Alojamientos">
+                <i class="fa-solid fa-arrow-left me-1"></i> Volver
+            </a>
             <a href="{{ route('rate_periods.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
                 <i class="fa-solid fa-plus me-1"></i> Nueva Temporada
             </a>

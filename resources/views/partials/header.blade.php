@@ -11,10 +11,29 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    @php
+        $primary = setting('color_primary', '#c05a1e');
+        $hex = ltrim($primary, '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+        $r = $g = $b = 0;
+        if (strlen($hex) === 6) {
+            $r = hexdec(substr($hex, 0, 2));
+            $g = hexdec(substr($hex, 2, 2));
+            $b = hexdec(substr($hex, 4, 2));
+        }
+        $primaryRgb = "$r, $g, $b";
+    @endphp
     <style>
-        :root {
-            --bs-primary: {{ setting('color_primary', '#c05a1e') }};
-            --bs-primary-rgb: {{ implode(',', sscanf(setting('color_primary', '#c05a1e'), "#%02x%02x%02x")) }};
+        html :root {
+            --bs-primary: {{ $primary }};
+            --bs-primary-rgb: {{ $primaryRgb }};
+        }
+
+        body {
+            --bs-primary: {{ $primary }};
+            --bs-primary-rgb: {{ $primaryRgb }};
         }
 
         .btn-primary {
@@ -24,9 +43,6 @@
             --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary), black 15%);
             --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary), black 20%);
         }
-
-        .text-primary { color: var(--bs-primary) !important; }
-        .bg-primary { background-color: var(--bs-primary) !important; }
     </style>
     @stack('styles')
 </head>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PricingType;
 use App\Enums\QuoteStatus;
 use App\Models\Usuarios\Usuario;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ class Quote extends Model
         'code',
         'status',
         'accommodation_id',
+        'pricing_type',
         'guest_id',
         'check_in_date',
         'check_out_date',
@@ -44,6 +46,7 @@ class Quote extends Model
     {
         return [
             'status' => QuoteStatus::class,
+            'pricing_type' => PricingType::class,
             'check_in_date' => 'date',
             'check_out_date' => 'date',
             'nightly_subtotal' => 'decimal:2',

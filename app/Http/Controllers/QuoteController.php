@@ -47,7 +47,7 @@ class QuoteController extends Controller
     public function create()
     {
         $this->authorize('create', Quote::class);
-        $accommodations = Accommodation::where('status', 'available')->orWhere('status', '!=', 'maintenance')->get()->pluck('name', 'id')->prepend('Seleccionar alojamiento', '');
+        $accommodations = Accommodation::where('status', 'available')->orWhere('status', '!=', 'maintenance')->get(['id', 'name', 'pricing_type']);
         $guests = Guest::all()->sortBy('first_name')->mapWithKeys(function ($g) {
             $doc = $g->document_number ? ' ('.$g->document_number.')' : '';
             $phone = $g->phone ? ' - '.$g->phone : '';
@@ -80,14 +80,19 @@ class QuoteController extends Controller
                 $accommodation,
                 $checkIn,
                 $checkOut,
-                $data['guests_count']
+                $data['guests_count'],
+                $data['pricing_type'] ?? null
             );
 
             $data['nightly_subtotal'] = $prices['subtotal'];
+            $data['rate_snapshot'] = $prices['snapshot'];
+            $data['pricing_type'] = $prices['pricing_type'];
             $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
             $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
+            $data['discount_total'] = $data['discount_total'] ?? 0;
+            $data['tax_total'] = $data['tax_total'] ?? 0;
             
-            $total = $prices['subtotal'] + $data['cleaning_fee'] + $data['security_deposit'] - ($data['discount_total'] ?? 0) + ($data['tax_total'] ?? 0);
+            $total = $prices['subtotal'] + $data['cleaning_fee'] + $data['security_deposit'] - $data['discount_total'] + $data['tax_total'];
             $data['total_amount'] = $total;
 
             $quote = Quote::create($data);
@@ -115,7 +120,7 @@ class QuoteController extends Controller
             return redirect()->route('quotes.show', $quote)->with('warning', 'No se puede editar una cotización ya convertida.');
         }
 
-        $accommodations = Accommodation::all()->sortBy('name')->pluck('name', 'id')->prepend('Seleccionar alojamiento', '');
+        $accommodations = Accommodation::orderBy('name')->get(['id', 'name', 'pricing_type']);
         $guests = Guest::all()->sortBy('first_name')->mapWithKeys(function ($g) {
             $doc = $g->document_number ? ' ('.$g->document_number.')' : '';
             $phone = $g->phone ? ' - '.$g->phone : '';
@@ -149,11 +154,18 @@ class QuoteController extends Controller
                 $accommodation,
                 $checkIn,
                 $checkOut,
-                $data['guests_count']
+                $data['guests_count'],
+                $data['pricing_type'] ?? null
             );
 
             $data['nightly_subtotal'] = $prices['subtotal'];
-            $total = $prices['subtotal'] + ($data['cleaning_fee'] ?? 0) + ($data['security_deposit'] ?? 0) - ($data['discount_total'] ?? 0) + ($data['tax_total'] ?? 0);
+            $data['rate_snapshot'] = $prices['snapshot'];
+            $data['pricing_type'] = $prices['pricing_type'];
+            $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
+            $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
+            $data['discount_total'] = $data['discount_total'] ?? 0;
+            $data['tax_total'] = $data['tax_total'] ?? 0;
+            $total = $prices['subtotal'] + $data['cleaning_fee'] + $data['security_deposit'] - $data['discount_total'] + $data['tax_total'];
             $data['total_amount'] = $total;
 
             $quote->update($data);
@@ -206,6 +218,7 @@ class QuoteController extends Controller
                 'code' => $reservationCode,
                 'quote_id' => $quote->id,
                 'accommodation_id' => $quote->accommodation_id,
+                'pricing_type' => $quote->pricing_type,
                 'primary_guest_id' => $quote->guest_id,
                 'check_in_date' => $quote->check_in_date,
                 'check_out_date' => $quote->check_out_date,

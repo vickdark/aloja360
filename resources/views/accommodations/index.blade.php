@@ -166,8 +166,8 @@
                         </div>
                         <div class="flex-fill p-2 bg-light-subtle rounded-3">
                             <i class="fa-solid fa-dollar-sign d-block text-success mb-1"></i>
-                            <span class="fw-bold d-block small text-success text-truncate" title="${{ number_format($accommodation->base_price, 0) }}">
-                                ${{ number_format($accommodation->base_price, 0) }}
+                            <span class="fw-bold d-block small text-success text-truncate" title="{{ number_format($accommodation->base_price, 0) }}">
+                                {{ number_format($accommodation->base_price, 0) }}
                             </span>
                             <span class="text-muted" style="font-size: 0.65rem;">Noche</span>
                         </div>

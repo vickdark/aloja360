@@ -180,6 +180,32 @@
                         </h4>
                         
                         <div class="mb-3">
+                            <label class="form-label small fw-bold text-white-50">Modelo de Cobro</label>
+                            <select name="pricing_type" id="pricing_type" class="form-select bg-white bg-opacity-10 border-0 text-white @error('pricing_type') is-invalid @enderror" required style="background-image: none;">
+                                @foreach(App\Enums\PricingType::cases() as $case)
+                                    <option value="{{ $case->value }}" {{ old('pricing_type', App\Enums\PricingType::PerAccommodation->value) == $case->value ? 'selected' : '' }} class="text-dark">
+                                        {{ $case->label() }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text text-white-50 small mt-1">
+                                Por alojamiento = tarifa fija. Por persona = tarifa variable.
+                            </div>
+                            @error('pricing_type') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div id="price_per_person_group" class="mb-3" style="display:none;">
+                            <label class="form-label small fw-bold text-white-50">Precio Persona / Noche</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
+                                <input type="number" step="100" min="0" name="price_per_person" id="price_per_person" value="{{ old('price_per_person', 0) }}" class="form-control bg-white bg-opacity-10 border-0 text-white">
+                            </div>
+                            <div class="form-text text-white-50 small mt-1">
+                                Precio base noche por persona. RatePeriod puede sobreescribirlo.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label small fw-bold text-white-50">Precio Base (por noche)</label>
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
@@ -293,4 +319,26 @@
     }
     .transition-all { transition: all 0.2s ease; }
 </style>
+
+<script>
+(function() {
+    const pricingTypeSel = document.getElementById('pricing_type');
+    const perPersonGroup = document.getElementById('price_per_person_group');
+    const pricePerPersonInput = document.getElementById('price_per_person');
+    const basePriceGroup = document.getElementById('base_price').closest('.mb-3');
+
+    function togglePricingFields() {
+        const isPerPerson = pricingTypeSel.value === '{{ App\Enums\PricingType::PerPerson->value }}';
+        perPersonGroup.style.display = isPerPerson ? 'block' : 'none';
+        if (isPerPerson) {
+            pricePerPersonInput.setAttribute('required', 'required');
+        } else {
+            pricePerPersonInput.removeAttribute('required');
+        }
+    }
+
+    pricingTypeSel.addEventListener('change', togglePricingFields);
+    togglePricingFields();
+})();
+</script>
 @endsection

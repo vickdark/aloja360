@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\AccommodationStatus;
 use App\Enums\AccommodationType;
+use App\Enums\PricingType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
@@ -32,6 +33,8 @@ class UpdateAccommodationRequest extends FormRequest
             'beds' => 'nullable|integer|min:0',
             'bathrooms' => 'nullable|numeric|min:0',
             'base_price' => 'required|numeric|min:0',
+            'pricing_type' => ['required', new Enum(PricingType::class)],
+            'price_per_person' => 'nullable|numeric|min:0',
             'cleaning_fee' => 'nullable|numeric|min:0',
             'security_deposit' => 'nullable|numeric|min:0',
             'weekend_price_modifier' => 'nullable|numeric|min:0',

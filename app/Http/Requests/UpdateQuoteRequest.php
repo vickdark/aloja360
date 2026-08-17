@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PricingType;
 use App\Enums\QuoteStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
@@ -17,6 +18,7 @@ class UpdateQuoteRequest extends FormRequest
     {
         return [
             'accommodation_id' => 'required|exists:accommodations,id',
+            'pricing_type' => ['nullable', new Enum(PricingType::class)],
             'guest_id' => 'required|exists:guests,id',
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',

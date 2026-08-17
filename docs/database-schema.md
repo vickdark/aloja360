@@ -1,6 +1,6 @@
 # Aloja360 - Database Schema
 
-Versión del esquema: 1.0 | Última actualización: 2026-08-15
+Versión del esquema: 1.1 | Última actualización: 2026-08-17
 
 ## Diagrama ER (Mermaid)
 
@@ -139,6 +139,8 @@ erDiagram
         int beds
         int bathrooms
         decimal base_price
+        string pricing_type "per_accommodation | per_person (Enum PricingType)"
+        decimal price_per_person "precio base noche por persona"
         decimal cleaning_fee
         decimal security_deposit
         string check_in_time
@@ -221,6 +223,7 @@ erDiagram
         string code UK
         string status
         bigint accommodation_id FK
+        string pricing_type "per_accommodation | per_person (Enum PricingType) — snapshot del tipo de cobro elegido"
         bigint guest_id FK
         date check_in_date
         date check_out_date
@@ -241,6 +244,7 @@ erDiagram
         string status
         string source
         bigint accommodation_id FK
+        string pricing_type "per_accommodation | per_person (Enum PricingType) — snapshot del tipo de cobro elegido"
         bigint primary_guest_id FK
         bigint quote_id FK
         date check_in_date

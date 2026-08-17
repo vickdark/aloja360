@@ -62,12 +62,15 @@
                                 <select name="accommodation_id" id="accommodation_id" class="form-select form-select-lg @error('accommodation_id') is-invalid @enderror" required>
                                     <option value="">Seleccionar Alojamiento...</option>
                                     @foreach($accommodations as $a)
+                                        @php($pricingType = is_a($a->pricing_type, \App\Enums\PricingType::class) ? $a->pricing_type : \App\Enums\PricingType::tryFrom($a->pricing_type) ?? \App\Enums\PricingType::PerAccommodation)
                                         <option value="{{ $a->id }}" 
                                             data-price="{{ $a->base_price }}"
+                                            data-price-per-person="{{ $a->price_per_person ?? 0 }}"
+                                            data-pricing-type="{{ $pricingType->value }}"
                                             data-cleaning="{{ $a->cleaning_fee ?? 0 }}"
                                             data-deposit="{{ $a->security_deposit ?? 0 }}"
                                             {{ old('accommodation_id') == $a->id ? 'selected' : '' }}>
-                                            {{ $a->name }} - {{ $a->type->label() }} (${{ number_format($a->base_price, 0) }})
+                                            {{ $a->name }} - {{ $a->type->label() }} ({{ $pricingType->shortLabel() }}: ${{ number_format($pricingType === \App\Enums\PricingType::PerPerson ? ($a->price_per_person ?? 0) : $a->base_price, 0) }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -124,6 +127,21 @@
                                     @endforeach
                                 </select>
                                 <div class="form-text">Pendiente = Requiere Confirmación. Confirmada = Bloquea disponibilidad.</div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-muted">
+                                    <i class="fa-solid fa-sack-dollar me-1"></i> Forma de Cobro
+                                </label>
+                                <select name="pricing_type" id="pricing_type" class="form-select form-select-lg @error('pricing_type') is-invalid @enderror">
+                                    @foreach(\App\Enums\PricingType::cases() as $pt)
+                                        <option value="{{ $pt->value }}" {{ old('pricing_type') == $pt->value ? 'selected' : '' }}>
+                                            {{ $pt->label() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Por defecto toma la configuración del alojamiento. Cámbialo solo si quieres cobrar distinto esta reserva.</div>
+                                @error('pricing_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
                     </div>
@@ -253,6 +271,26 @@
 </div>
 
 <script>
+// Actualizar forma de cobro por defecto al elegir alojamiento
+const PER_ACCOMMODATION = '{{ App\Enums\PricingType::PerAccommodation->value }}';
+const PER_PERSON = '{{ App\Enums\PricingType::PerPerson->value }}';
+
+function syncPricingTypeFromAccommodation(force) {
+    const select = document.getElementById('accommodation_id');
+    const opt = select.options[select.selectedIndex];
+    const pricingTypeSelect = document.getElementById('pricing_type');
+    if(!opt) return;
+    const accommodationPricing = opt.getAttribute('data-pricing-type');
+    if(accommodationPricing && (force || !pricingTypeSelect.dataset.userSet)) {
+        pricingTypeSelect.value = accommodationPricing;
+    }
+}
+
+document.getElementById('pricing_type').addEventListener('change', function() {
+    this.dataset.userSet = '1';
+    calculateEstimate();
+});
+
 // Actualizar campos de limpieza y deposito automaticamente al elegir alojamiento
 document.getElementById('accommodation_id').addEventListener('change', function() {
     const opt = this.options[this.selectedIndex];
@@ -265,6 +303,7 @@ document.getElementById('accommodation_id').addEventListener('change', function(
     if(document.getElementById('security_deposit').value == 0) {
         document.getElementById('security_deposit').value = deposit;
     }
+    syncPricingTypeFromAccommodation(true);
     calculateEstimate();
 });
 
@@ -305,16 +344,23 @@ function calculateEstimate() {
     const select = document.getElementById('accommodation_id');
     const opt = select.options[select.selectedIndex];
     const basePrice = parseFloat(opt.getAttribute('data-price')) || 0;
+    const pricePerPerson = parseFloat(opt.getAttribute('data-price-per-person')) || 0;
+    const pricingType = document.getElementById('pricing_type').value;
     
     const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
     const dep = parseFloat(document.getElementById('security_deposit').value) || 0;
     const disc = parseFloat(document.getElementById('discount_total').value) || 0;
     const tax = parseFloat(document.getElementById('tax_total').value) || 0;
+    const pax = parseInt(document.getElementById('guests_count_hidden').value) || 0;
 
-    const subtotal = (nights * basePrice);
-    const total = subtotal + clean - disc + tax; // El deposito NO se suma al total facturable regularmente, se devuelve. Pero segun PricingService se suma.
+    let subtotal = 0;
+    if(pricingType === PER_PERSON) {
+        subtotal = (nights * Math.max(pax, 1) * pricePerPerson);
+    } else {
+        subtotal = (nights * basePrice);
+    }
+    const total = subtotal + clean - disc + tax; 
     
-    // Segun PricingService total = nightly + services - discount + tax + cleaning. Deposit no se suma al neto.
     const invoiceTotal = subtotal + clean - disc + tax;
     
     document.getElementById('total_preview_text').innerText = invoiceTotal.toLocaleString('es-CO', { maximumFractionDigits: 0 });
@@ -333,8 +379,8 @@ function calculateEstimate() {
 
 // Init
 updatePaxCount();
+syncPricingTypeFromAccommodation(false);
 calculateEstimate();
-// Si hay un alojamiento seleccionado por old(), forzar el trigger
 if(document.getElementById('accommodation_id').value) {
     document.getElementById('accommodation_id').dispatchEvent(new Event('change'));
 }

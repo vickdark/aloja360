@@ -8,6 +8,9 @@
             <span class="badge bg-light text-dark ms-3 rounded-pill fs-6">{{ $amenities->total() }} Total</span>
         </h1>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('accommodations.index') }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm" title="Volver a Alojamientos">
+                <i class="fa-solid fa-arrow-left me-1"></i> Volver
+            </a>
             <form action="{{ url()->current() }}" method="GET" class="input-group" style="max-width: 350px; width: 100%;">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
                 <input type="text" name="search" class="form-control border-start-0 bg-light ps-0" placeholder="Buscar amenidad..." value="{{ request('search') }}">

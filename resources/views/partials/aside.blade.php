@@ -1,16 +1,16 @@
 <aside class="app-sidebar">
     <div class="app-sidebar-inner">
-        <div class="app-sidebar-brand px-4 py-3 d-flex align-items-center gap-3">
-            <div class="app-brand-logo bg-white bg-opacity-10 rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px; min-width: 40px;">
+        <div class="app-sidebar-brand px-4 py-4 d-flex flex-column align-items-center justify-content-center gap-3">
+            <div class="app-brand-logo bg-white bg-opacity-10 rounded-4 d-flex align-items-center justify-content-center shadow-sm" style="width: 96px; height: 96px; min-width: 96px;">
                 @if(setting('app_logo_image'))
-                    <img src="{{ asset('storage/' . setting('app_logo_image')) }}" alt="Logo" style="width: 30px; height: 30px; object-fit: contain;">
+                    <img src="{{ asset('storage/' . setting('app_logo_image')) }}" alt="Logo" style="width: 72px; height: 72px; object-fit: contain;">
                 @else
-                    <i class="fa-solid {{ setting('app_logo_icon', 'fa-rocket') }} text-primary fs-4"></i>
+                    <i class="fa-solid {{ setting('app_logo_icon', 'fa-rocket') }} text-primary fs-1"></i>
                 @endif
             </div>
-            <div class="app-brand-info overflow-hidden">
+            <div class="app-brand-info overflow-hidden text-center w-100">
                 <span class="app-brand-text fw-bold text-white fs-5 lh-1 d-block">{{ setting('app_name', config('app.name', 'Laravel')) }}</span>
-                <span class="text-sidebar-muted fw-medium" style="font-size: 0.65rem; letter-spacing: 0.05em; text-transform: uppercase;">{{ setting('app_subtitle', 'Sistema en laravel') }}</span>
+                <span class="text-sidebar-muted fw-medium d-block mt-1" style="font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase;">{{ setting('app_subtitle', 'Sistema en laravel') }}</span>
             </div>
         </div>
 
@@ -28,6 +28,7 @@
                     'business.index',
                     'expenses.index',
                     'maintenance.index',
+                    'businesses.index',
                 ];
 
                 $menuItems = $role

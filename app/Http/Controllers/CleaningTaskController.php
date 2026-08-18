@@ -13,11 +13,26 @@ class CleaningTaskController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', CleaningTask::class);
-        $tasks = CleaningTask::with(['accommodation', 'assignedTo'])->latest()->paginate(15);
-        return view('cleaning.index', compact('tasks'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = CleaningTask::with(['accommodation', 'assignedTo']);
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->whereHas('accommodation', function($aq) use ($search) {
+                    $aq->where('name', 'like', "%{$search}%");
+                });
+            }
+            $total = $query->count();
+            $tasks = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $tasks, 'total' => (int)$total]);
+        }
+
+        return view('cleaning.index');
     }
 
     public function create()
@@ -71,10 +86,13 @@ class CleaningTaskController extends Controller
         return redirect()->route('cleaning.index')->with('success', 'Tarea actualizada.');
     }
 
-    public function destroy(CleaningTask $cleaning)
+    public function destroy(CleaningTask $cleaning, \Illuminate\Http\Request $request)
     {
         $this->authorize('delete', $cleaning);
         $cleaning->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Tarea eliminada.']);
+        }
         return redirect()->route('cleaning.index')->with('success', 'Tarea eliminada.');
     }
 }

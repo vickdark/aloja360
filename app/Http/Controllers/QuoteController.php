@@ -29,13 +29,23 @@ class QuoteController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->whereHas('guest', function($q) use ($s) {
-                $q->where('first_name', 'LIKE', "%$s%")->orWhere('last_name', 'LIKE', "%$s%")->orWhere('document_number', 'LIKE', "%$s%");
-            })->orWhere('code', 'LIKE', "%$s%");
+            $query->where(function($q) use ($s) {
+                $q->whereHas('guest', function($gq) use ($s) {
+                    $gq->where('first_name', 'LIKE', "%$s%")->orWhere('last_name', 'LIKE', "%$s%")->orWhere('document_number', 'LIKE', "%$s%");
+                })->orWhere('code', 'LIKE', "%$s%");
+            });
         }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $total = $query->count();
+            $items = $query->latest('created_at')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $items, 'total' => (int)$total]);
         }
 
         $quotes = $query->latest('created_at')->paginate(15)->withQueryString();
@@ -178,10 +188,13 @@ class QuoteController extends Controller
         }
     }
 
-    public function destroy(Quote $quote)
+    public function destroy(Quote $quote, Request $request)
     {
         $this->authorize('delete', $quote);
         $quote->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Cotización eliminada.']);
+        }
         return redirect()->route('quotes.index')->with('success', 'Cotización eliminada.');
     }
 

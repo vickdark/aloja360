@@ -291,15 +291,146 @@ body {
 
 @media (max-width: 991px) {
     .app-sidebar {
-        position: fixed !important; /* En móvil sí necesitamos que sea fixed y flote */
+        position: fixed !important;
         left: -100% !important;
-        width: 280px; /* Un poco más ancho en móvil */
+        width: 280px;
         transition: left 0.3s ease;
     }
     .sidebar-open .app-sidebar {
         left: 0 !important;
     }
-    .app-main {
-        /* Nada que ajustar aquí en móvil */
+}
+
+/* =========================================================
+   Grid.js — Modo Tarjetas en Móvil (<= 768px)
+   Convierte cada fila <tr> en una tarjeta independiente
+   ========================================================= */
+@media (max-width: 768px) {
+    .gridjs-wrapper {
+        overflow-x: visible !important;
+    }
+
+    .gridjs-head {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+        padding: 0.75rem !important;
+    }
+
+    .gridjs-search {
+        width: 100% !important;
+    }
+    .gridjs-search .gridjs-search-input {
+        width: 100% !important;
+    }
+
+    table.gridjs-responsive-table {
+        border: 0;
+        width: 100%;
+    }
+
+    table.gridjs-responsive-table thead {
+        display: none !important;
+    }
+
+    table.gridjs-responsive-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    table.gridjs-responsive-table tbody tr {
+        display: block !important;
+        width: 100%;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1rem 1rem 0.25rem 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+        box-sizing: border-box;
+    }
+
+    table.gridjs-responsive-table tbody tr:hover {
+        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+    }
+
+    table.gridjs-responsive-table tbody tr td {
+        display: flex !important;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        width: 100% !important;
+        padding: 0.5rem 0 !important;
+        border: none !important;
+        border-bottom: 1px dashed #eef0f4 !important;
+        text-align: right !important;
+        box-sizing: border-box;
+    }
+
+    table.gridjs-responsive-table tbody tr td:last-child {
+        border-bottom: none !important;
+    }
+
+    table.gridjs-responsive-table tbody tr td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        text-align: left;
+        flex: 0 0 auto;
+        max-width: 40%;
+        padding-right: 0.5rem;
+        align-self: center;
+    }
+
+    table.gridjs-responsive-table tbody tr td[data-label="Acciones"],
+    table.gridjs-responsive-table tbody tr td[data-label="Acciones"]::before {
+        content: none !important;
+    }
+
+    table.gridjs-responsive-table tbody tr td[data-label="Acciones"] {
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0.75rem 0 0.25rem 0 !important;
+    }
+
+    table.gridjs-responsive-table tbody tr td[data-label="Acciones"] .btn-group,
+    table.gridjs-responsive-table tbody tr td[data-label="Acciones"] .btn {
+        min-height: 38px;
+        min-width: 42px;
+    }
+
+    table.gridjs-responsive-table tbody tr td > * {
+        text-align: right;
+    }
+
+    table.gridjs-responsive-table tbody tr td:empty::before {
+        display: none;
+    }
+
+    .gridjs-footer {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+        padding: 0.75rem !important;
+    }
+
+    .gridjs-pagination {
+        width: 100% !important;
+    }
+
+    .gridjs-pages {
+        justify-content: center !important;
+        flex-wrap: wrap;
+    }
+
+    .gridjs-pages button {
+        min-height: 38px;
+        min-width: 38px;
     }
 }

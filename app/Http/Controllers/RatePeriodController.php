@@ -12,11 +12,32 @@ class RatePeriodController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', RatePeriod::class);
-        $ratePeriods = RatePeriod::with('accommodation')->latest()->paginate(20);
-        return view('rate_periods.index', compact('ratePeriods'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = RatePeriod::with('accommodation');
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhereHas('accommodation', function($aq) use ($search) {
+                          $aq->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+            $total = $query->count();
+            $items = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $items, 'total' => (int)$total]);
+        }
+
+        $active_count = RatePeriod::where('status', 'active')->count();
+        $avg_nightly_price_active = (float)RatePeriod::where('status', 'active')->avg('price_per_night');
+        $total_count = RatePeriod::count();
+        return view('rate_periods.index', compact('active_count', 'avg_nightly_price_active', 'total_count'));
     }
 
     public function create()
@@ -59,10 +80,13 @@ class RatePeriodController extends Controller
         return redirect()->route('rate_periods.index')->with('success', 'Temporada actualizada correctamente.');
     }
 
-    public function destroy(RatePeriod $ratePeriod)
+    public function destroy(RatePeriod $ratePeriod, \Illuminate\Http\Request $request)
     {
         $this->authorize('delete', $ratePeriod);
         $ratePeriod->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Temporada eliminada correctamente.']);
+        }
         return redirect()->route('rate_periods.index')->with('success', 'Temporada eliminada correctamente.');
     }
 }

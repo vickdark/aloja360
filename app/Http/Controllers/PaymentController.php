@@ -13,11 +13,32 @@ class PaymentController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', Payment::class);
-        $payments = Payment::with(['reservation', 'guest'])->latest()->paginate(15);
-        return view('payments.index', compact('payments'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = Payment::with(['reservation', 'guest']);
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('code', 'like', "%{$search}%")
+                      ->orWhereHas('reservation', function($rq) use ($search) {
+                          $rq->where('code', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('guest', function($gq) use ($search) {
+                          $gq->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%");
+                      });
+                });
+            }
+            $total = $query->count();
+            $payments = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $payments, 'total' => (int)$total]);
+        }
+
+        return view('payments.index');
     }
 
     public function create()

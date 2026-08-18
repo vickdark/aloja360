@@ -2,6 +2,7 @@ export default class DataGrid {
     constructor(elementId, options = {}) {
         this.elementId = elementId;
         this.instance = null;
+        this._observer = null;
         this.options = {
             language: {
                 'search': { 'placeholder': 'Buscar...' },
@@ -15,14 +16,14 @@ export default class DataGrid {
                 'loading': 'Cargando...',
             },
             className: {
-                table: 'table table-hover',
+                table: 'table table-hover gridjs-responsive-table',
                 thead: 'bg-light',
                 th: 'py-3 text-secondary text-uppercase small fw-bold',
                 td: 'py-3 align-middle'
             },
             resizable: true,
             sort: true,
-            pagination: { 
+            pagination: {
                 limit: 10,
                 server: options.url ? true : false
             },
@@ -43,8 +44,7 @@ export default class DataGrid {
                 handle: (res) => {
                     if (res.status === 404) return { data: [], total: 0 };
                     if (res.ok) return res.json();
-                    
-                    // Si el error es un error de servidor (HTML), mostramos algo útil en consola
+
                     return res.text().then(text => {
                         console.error('Error del servidor (no es JSON):', text.substring(0, 200));
                         return { data: [], total: 0 };
@@ -63,7 +63,48 @@ export default class DataGrid {
         this.instance = new window.Gridjs.Grid(this.options);
         this.instance.render(document.getElementById(this.elementId));
         this.addExportButtons();
+        this._initMobileCards();
         return this.instance;
+    }
+
+    _initMobileCards() {
+        const wrapper = document.getElementById(this.elementId);
+        if (!wrapper) return;
+
+        this._applyDataLabels();
+
+        if (this._observer) this._observer.disconnect();
+        this._observer = new MutationObserver(() => {
+            this._applyDataLabels();
+        });
+        this._observer.observe(wrapper, { childList: true, subtree: true });
+    }
+
+    _getColumnNames() {
+        return (this.options.columns || []).map(col => {
+            if (typeof col === 'string') return col;
+            return col && col.name ? col.name : '';
+        });
+    }
+
+    _applyDataLabels() {
+        const wrapper = document.getElementById(this.elementId);
+        if (!wrapper) return;
+
+        const labels = this._getColumnNames();
+        const table = wrapper.querySelector('table.gridjs-responsive-table');
+        if (!table) return;
+
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(tr => {
+            const cells = tr.querySelectorAll('td');
+            cells.forEach((td, idx) => {
+                const label = labels[idx] || '';
+                if (label && !td.hasAttribute('data-label')) {
+                    td.setAttribute('data-label', label);
+                }
+            });
+        });
     }
 
     addExportButtons() {

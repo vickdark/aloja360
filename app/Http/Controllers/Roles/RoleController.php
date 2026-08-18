@@ -13,8 +13,24 @@ class RoleController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = Role::withCount('users');
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('nombre', 'like', "%{$search}%")
+                      ->orWhere('slug', 'like', "%{$search}%");
+                });
+            }
+            $total = $query->count();
+            $roles = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $roles, 'total' => (int)$total]);
+        }
+
         $roles = Role::withCount('users')->get();
         return view('roles.index', compact('roles'));
     }
@@ -96,15 +112,21 @@ class RoleController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Role $role)
+    public function destroy(Role $role, Request $request)
     {
         if ($role->slug === 'admin') {
-            return redirect()->route('roles.index')->with('error', 'No se puede eliminar el rol de administrador por seguridad del sistema.');
+            $msg = 'No se puede eliminar el rol de administrador por seguridad del sistema.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => $msg], 403);
+            }
+            return redirect()->route('roles.index')->with('error', $msg);
         }
 
-        // El sistema permite borrar el rol porque la base de datos pondrá el role_id en NULL automáticamente (nullOnDelete)
         $role->delete();
-
-        return redirect()->route('roles.index')->with('success', 'Rol eliminado correctamente. Los usuarios que tenían este rol ahora no tienen ninguno asignado.');
+        $msg = 'Rol eliminado correctamente. Los usuarios que tenían este rol ahora no tienen ninguno asignado.';
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => $msg]);
+        }
+        return redirect()->route('roles.index')->with('success', $msg);
     }
 }

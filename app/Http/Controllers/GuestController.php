@@ -11,11 +11,30 @@ class GuestController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', Guest::class);
-        $guests = Guest::latest()->paginate(15);
-        return view('guests.index', compact('guests'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = Guest::query();
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('document_number', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                });
+            }
+            $total = $query->count();
+            $guests = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $guests, 'total' => (int)$total]);
+        }
+
+        return view('guests.index');
     }
 
     public function create()
@@ -50,10 +69,13 @@ class GuestController extends Controller
         return redirect()->route('guests.index')->with('success', 'Huésped actualizado correctamente.');
     }
 
-    public function destroy(Guest $guest)
+    public function destroy(Guest $guest, \Illuminate\Http\Request $request)
     {
         $this->authorize('delete', $guest);
         $guest->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Huésped eliminado correctamente.']);
+        }
         return redirect()->route('guests.index')->with('success', 'Huésped eliminado correctamente.');
     }
 }

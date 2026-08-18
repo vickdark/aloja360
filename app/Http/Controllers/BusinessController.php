@@ -16,8 +16,25 @@ class BusinessController extends Controller
     {
         $this->authorize('viewAny', Business::class);
 
-        $businesses = Business::orderBy('name')->paginate(10);
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = Business::query();
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('legal_name', 'like', "%{$search}%")
+                      ->orWhere('city', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+            $total = $query->count();
+            $businesses = $query->orderBy('name')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $businesses, 'total' => (int)$total]);
+        }
 
+        $businesses = Business::orderBy('name')->paginate(10);
         return view('businesses.index', compact('businesses'));
     }
 

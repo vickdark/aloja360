@@ -13,11 +13,29 @@ class BlockedPeriodController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', BlockedPeriod::class);
-        $blockedPeriods = BlockedPeriod::with('accommodation', 'createdBy')->latest()->paginate(20);
-        return view('blocked_periods.index', compact('blockedPeriods'));
+
+        $query = BlockedPeriod::with('accommodation', 'createdBy');
+        $limit = $request->get('limit', 10);
+        $offset = $request->get('offset', 0);
+        $search = $request->get('search');
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('reason', 'like', "%{$search}%")
+                  ->orWhereHas('accommodation', function($aq) use ($search) {
+                      $aq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+        $total = $query->count();
+        if ($request->ajax() || $request->wantsJson()) {
+            $items = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $items, 'total' => (int)$total]);
+        }
+
+        return view('blocked_periods.index', compact('total'));
     }
 
     public function create()
@@ -59,10 +77,13 @@ class BlockedPeriodController extends Controller
         return redirect()->route('blocked_periods.index')->with('success', 'Bloqueo actualizado correctamente.');
     }
 
-    public function destroy(BlockedPeriod $blockedPeriod)
+    public function destroy(BlockedPeriod $blockedPeriod, \Illuminate\Http\Request $request)
     {
         $this->authorize('delete', $blockedPeriod);
         $blockedPeriod->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Bloqueo eliminado correctamente.']);
+        }
         return redirect()->route('blocked_periods.index')->with('success', 'Bloqueo eliminado correctamente.');
     }
 }

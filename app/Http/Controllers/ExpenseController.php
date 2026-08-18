@@ -13,11 +13,27 @@ class ExpenseController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', Expense::class);
-        $expenses = Expense::with(['expenseCategory', 'accommodation'])->latest()->paginate(15);
-        return view('expenses.index', compact('expenses'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = Expense::with(['expenseCategory', 'accommodation']);
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('supplier', 'like', "%{$search}%");
+                });
+            }
+            $total = $query->count();
+            $expenses = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $expenses, 'total' => (int)$total]);
+        }
+
+        return view('expenses.index');
     }
 
     public function create()
@@ -65,10 +81,13 @@ class ExpenseController extends Controller
         return redirect()->route('expenses.index')->with('success', 'Gasto actualizado.');
     }
 
-    public function destroy(Expense $expense)
+    public function destroy(Expense $expense, \Illuminate\Http\Request $request)
     {
         $this->authorize('delete', $expense);
         $expense->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Gasto eliminado.']);
+        }
         return redirect()->route('expenses.index')->with('success', 'Gasto eliminado.');
     }
 }

@@ -13,13 +13,30 @@ class MaintenanceRequestController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $this->authorize('viewAny', MaintenanceRequest::class);
-        $requests = MaintenanceRequest::with(['accommodation', 'assignedTo', 'reportedBy'])
-            ->latest()
-            ->paginate(15);
-        return view('maintenance.index', compact('requests'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $query = MaintenanceRequest::with(['accommodation', 'assignedTo', 'reportedBy']);
+            $limit = $request->get('limit', 10);
+            $offset = $request->get('offset', 0);
+            $search = $request->get('search');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('category', 'like', "%{$search}%")
+                      ->orWhereHas('accommodation', function($aq) use ($search) {
+                          $aq->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+            $total = $query->count();
+            $items = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            return response()->json(['data' => $items, 'total' => (int)$total]);
+        }
+
+        return view('maintenance.index');
     }
 
     public function create()
@@ -81,7 +98,7 @@ class MaintenanceRequestController extends Controller
         return redirect()->route('maintenance.index')->with('success', 'Mantenimiento actualizado.');
     }
 
-    public function destroy(MaintenanceRequest $maintenance)
+    public function destroy(MaintenanceRequest $maintenance, \Illuminate\Http\Request $request)
     {
         $this->authorize('delete', $maintenance);
         
@@ -90,6 +107,9 @@ class MaintenanceRequestController extends Controller
         }
         
         $maintenance->delete();
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Reporte eliminado.']);
+        }
         return redirect()->route('maintenance.index')->with('success', 'Reporte eliminado.');
     }
 }

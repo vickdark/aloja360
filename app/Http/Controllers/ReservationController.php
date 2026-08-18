@@ -62,17 +62,25 @@ class ReservationController extends Controller
         $checked_in_count = Reservation::where('status', \App\Enums\ReservationStatus::CheckedIn)->count();
         $checked_out_count = Reservation::where('status', \App\Enums\ReservationStatus::CheckedOut)->count();
 
-        $reservations = $query->orderBy('check_in_date', 'desc')->paginate(10);
+        $total_count = $query->count();
 
-        if ($request->wantsJson()) {
+        if ($request->ajax() || $request->wantsJson()) {
+            if ($request->has('limit')) {
+                $limit = $request->get('limit', 10);
+                $offset = $request->get('offset', 0);
+                $items = $query->orderBy('check_in_date', 'desc')->offset($offset)->limit($limit)->get();
+                $items->load(['accommodation', 'primaryGuest']);
+                return response()->json(['data' => $items, 'total' => (int)$total_count, 'status' => 'success']);
+            }
+            $reservations = $query->orderBy('check_in_date', 'desc')->paginate(10);
             return response()->json($reservations);
         }
 
         return view('reservations.index', compact(
-            'reservations', 
-            'pending_count', 
-            'confirmed_count', 
-            'checked_in_count', 
+            'total_count',
+            'pending_count',
+            'confirmed_count',
+            'checked_in_count',
             'checked_out_count'
         ));
     }

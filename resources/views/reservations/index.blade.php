@@ -5,7 +5,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <h1 class="h3 mb-0 text-gray-800 d-flex align-items-center flex-wrap gap-2">
             <i class="fa-solid fa-calendar-check text-primary me-2"></i> Gestión de Reservas
-            <span class="badge bg-light text-dark ms-2 rounded-pill fs-6">{{ $reservations->total() }} Total</span>
+            <span class="badge bg-light text-dark ms-2 rounded-pill fs-6">{{ $total_count }} Total</span>
         </h1>
         <div class="d-flex flex-wrap gap-2">
             <form action="{{ url()->current() }}" method="GET" class="input-group" style="max-width: 350px; width: 100%;">
@@ -64,7 +64,7 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <p class="text-uppercase small text-muted mb-1 fw-bold">Todas</p>
-                                <h3 class="mb-0 fw-bold">{{ $reservations->total() }}</h3>
+                                <h3 class="mb-0 fw-bold">{{ $total_count }}</h3>
                             </div>
                             <div class="bg-secondary bg-opacity-10 p-2 rounded-3">
                                 <i class="fa-solid fa-layer-group text-secondary fs-4"></i>
@@ -109,208 +109,8 @@
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light-subtle">
-                        <tr>
-                            <th class="px-4 py-3">Código / Alojamiento</th>
-                            <th class="px-4 py-3">Huésped Principal</th>
-                            <th class="px-4 py-3">Estancia</th>
-                            <th class="px-4 py-3">Personas</th>
-                            <th class="px-4 py-3">Estado</th>
-                            <th class="px-4 py-3 text-end">Total</th>
-                            <th class="px-4 py-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="border-top-0">
-                        @forelse($reservations as $reservation)
-                        @php
-                            $status = $reservation->status->value;
-                            $color = $statusColors[$status] ?? 'secondary';
-                            $icon = $statusIcons[$status] ?? 'fa-circle';
-                        @endphp
-                        <tr class="border-bottom border-light-subtle transition-all hover:bg-light">
-                            <td class="px-4 py-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-light p-2 rounded-3 d-flex align-items-center justify-content-center" style="min-width: 44px; height: 44px;">
-                                        <i class="fa-solid fa-house text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <div class="small text-muted mb-0">
-                                            <span class="badge bg-light text-dark rounded-pill px-2 py-0">#{{ $reservation->code }}</span>
-                                            @if($reservation->source === 'quote')
-                                                <span class="badge bg-info-subtle text-info-info ms-1 small rounded-pill" title="Convertida desde Cotización">
-                                                    <i class="fa-solid fa-file-invoice-dollar"></i>
-                                                </span>
-                                            @endif
-                                        </div>
-                                        <h6 class="mb-0 fw-bold text-truncate" style="max-width: 200px;" title="{{ $reservation->accommodation?->name }}">
-                                            {{ $reservation->accommodation?->name ?? 'Alojamiento Eliminado' }}
-                                        </h6>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                @if($reservation->primaryGuest)
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 36px; height: 36px; font-size: 0.85rem;">
-                                            {{ substr($reservation->primaryGuest->first_name, 0, 1) }}{{ substr($reservation->primaryGuest->last_name, 0, 1) }}
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold">{{ $reservation->primaryGuest->first_name }} {{ $reservation->primaryGuest->last_name }}</div>
-                                            @if($reservation->primaryGuest->phone)
-                                                <div class="small text-muted"><i class="fa-solid fa-phone me-1"></i>{{ $reservation->primaryGuest->phone }}</div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @else
-                                    <span class="text-danger">Sin Huésped</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="small mb-1">
-                                    <span class="d-inline-flex align-items-center text-success fw-semibold">
-                                        <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> 
-                                        {{ $reservation->check_in_date?->format('d M Y') }}
-                                    </span>
-                                </div>
-                                <div class="small">
-                                    <span class="d-inline-flex align-items-center text-danger fw-semibold">
-                                        <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> 
-                                        {{ $reservation->check_out_date?->format('d M Y') }}
-                                    </span>
-                                </div>
-                                <div class="badge bg-light text-dark mt-1 small rounded-pill">
-                                    <i class="fa-solid fa-moon me-1"></i> {{ $reservation->nights_count }} Noches
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                <div class="d-flex flex-column align-items-center">
-                                    <div class="fw-bold fs-5">
-                                        {{ $reservation->guests_count }} <small class="text-muted fw-normal small">Pax</small>
-                                    </div>
-                                    <div class="small text-muted">
-                                        @if($reservation->adults_count > 0)
-                                            <i class="fa-solid fa-user me-1"></i>{{ $reservation->adults_count }}
-                                        @endif
-                                        @if($reservation->children_count > 0)
-                                            <i class="fa-solid fa-child ms-2 me-1 text-info"></i>{{ $reservation->children_count }}
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="badge rounded-pill text-bg-{{ $color }} px-3 py-2 d-inline-flex align-items-center gap-1 fw-bold shadow-sm">
-                                    <i class="fa-solid {{ $icon }}"></i>
-                                    {{ $reservation->status->label() }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-end">
-                                <div class="fw-bold fs-5 mb-0">${{ number_format($reservation->total_amount, 0) }}</div>
-                                @if($reservation->security_deposit > 0)
-                                    <div class="small text-muted">+${{ number_format($reservation->security_deposit, 0) }} Dep.</div>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="d-flex justify-content-center gap-1 flex-wrap">
-                                    <a href="{{ route('reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3" title="Ver Ficha Completa">
-                                        <i class="fa-solid fa-file-invoice me-1"></i> Ficha
-                                    </a>
-                                    @if($status !== 'cancelled' && $status !== 'checked_out' && $status !== 'no_show')
-                                    <a href="{{ route('reservations.edit', $reservation) }}" class="btn btn-sm btn-outline-warning rounded-pill px-3" title="Editar Datos">
-                                        <i class="fa-solid fa-pen-to-square me-1"></i> Editar
-                                    </a>
-                                    @endif
-                                    
-                                    @if($status === 'pending')
-                                    <form action="{{ route('reservations.confirm', $reservation->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3" title="Confirmar Pago y Reserva">
-                                            <i class="fa-solid fa-check"></i> Confirmar
-                                        </button>
-                                    </form>
-                                    @endif
-                                    
-                                    @if($status === 'confirmed')
-                                    <form action="{{ route('reservations.checkIn', $reservation->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3" title="Realizar Check-In">
-                                            <i class="fa-solid fa-door-open me-1"></i> Entrada
-                                        </button>
-                                    </form>
-                                    @endif
-                                    
-                                    @if($status === 'checked_in')
-                                    <form action="{{ route('reservations.checkOut', $reservation->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-info text-white rounded-pill px-3" title="Realizar Check-Out y Limpieza">
-                                            <i class="fa-solid fa-door-closed me-1"></i> Salida
-                                        </button>
-                                    </form>
-                                    @endif
-                                    
-                                    @if(in_array($status, ['pending', 'confirmed']))
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#cancelModal{{ $reservation->id }}" title="Cancelar Reserva">
-                                        <i class="fa-solid fa-ban"></i>
-                                    </button>
-                                    @endif
-                                </div>
-
-                                <!-- Modal Cancelación Individual -->
-                                @if(in_array($status, ['pending', 'confirmed']))
-                                <div class="modal fade" id="cancelModal{{ $reservation->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <form action="{{ route('reservations.cancel', $reservation->id) }}" method="POST">
-                                            @csrf
-                                            <div class="modal-content rounded-4 border-0">
-                                                <div class="modal-header border-0 pb-0">
-                                                    <h5 class="modal-title text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> Cancelar Reserva {{ $reservation->code }}</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p class="text-muted small">Está a punto de cancelar la reserva de <b>{{ $reservation->primaryGuest?->full_name ?? 'N/A' }}</b> para <b>{{ $reservation->nights_count }} noches</b>.</p>
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-bold small">Motivo de Cancelación <span class="text-danger">*</span></label>
-                                                        <textarea name="reason" class="form-control" rows="3" required placeholder="Obligatorio. Describe el motivo para el historial."></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer border-0 pt-0">
-                                                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">No, volver</button>
-                                                    <button type="submit" class="btn btn-danger rounded-pill px-4">Si, Cancelar</button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                                @endif
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5">
-                                <div class="py-5">
-                                    <i class="fa-solid fa-calendar-xmark fa-4x mb-4 opacity-25 text-primary"></i>
-                                    <h4 class="mb-2">No hay reservas para mostrar</h4>
-                                    <p class="text-muted mb-4">No se encontraron reservas con los criterios de búsqueda seleccionados.</p>
-                                    <a href="{{ route('reservations.index') }}" class="btn btn-light rounded-pill px-4 me-2">Ver Todas</a>
-                                    <a href="{{ route('quotes.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                                        <i class="fa-solid fa-plus me-2"></i> Crear Cotización
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @if($reservations->hasPages())
-            <div class="card-footer bg-white border-0 pt-0 pb-4">
-                <div class="d-flex justify-content-center pt-2">
-                    {{ $reservations->withQueryString()->links() }}
-                </div>
-            </div>
-            @endif
+        <div class="card-body p-4">
+            <div id="wrapper"></div>
         </div>
     </div>
 </div>
@@ -346,3 +146,23 @@
     tr:hover { background-color: rgba(var(--bs-primary-rgb), 0.02); }
 </style>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    window.initReservationsIndex({
+        routes: {
+            index: '{{ route('reservations.index') }}',
+            show: '{{ route('reservations.show', ':id') }}',
+            edit: '{{ route('reservations.edit', ':id') }}',
+            confirm: '{{ route('reservations.confirm', ':id') }}',
+            checkIn: '{{ route('reservations.checkIn', ':id') }}',
+            checkOut: '{{ route('reservations.checkOut', ':id') }}'
+        },
+        tokens: {
+            csrf: '{{ csrf_token() }}'
+        }
+    });
+});
+</script>
+@endpush

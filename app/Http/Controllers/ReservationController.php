@@ -96,9 +96,10 @@ class ReservationController extends Controller
 
             // Si no se proveen valores financieros manualmente, calcularlos automaticamente
             if (!isset($data['nightly_subtotal']) || !isset($data['total_amount'])) {
+                $accommodation = Accommodation::find($data['accommodation_id']);
                 $guests = $data['guests_count'] ?? ($data['adults_count'] ?? 2) + ($data['children_count'] ?? 0);
                 $prices = $pricing->calculateStayTotal(
-                    $data['accommodation_id'],
+                    $accommodation,
                     $data['check_in_date'],
                     $data['check_out_date'],
                     $guests,
@@ -112,8 +113,8 @@ class ReservationController extends Controller
                 $data['services_total'] = $data['services_total'] ?? 0;
                 $data['discount_total'] = $data['discount_total'] ?? 0;
                 $data['tax_total'] = $data['tax_total'] ?? 0;
-                $data['cleaning_fee'] = $data['cleaning_fee'] ?? Accommodation::find($data['accommodation_id'])?->cleaning_fee ?? 0;
-                $data['security_deposit'] = $data['security_deposit'] ?? Accommodation::find($data['accommodation_id'])?->security_deposit ?? 0;
+                $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
+                $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
                 $data['rate_snapshot'] = $prices['snapshot'];
                 
                 $data['total_amount'] = $data['nightly_subtotal'] 
@@ -187,9 +188,10 @@ class ReservationController extends Controller
                 || ($request->filled('pricing_type') && ((string) $reservation->pricing_type?->value !== (string) $request->input('pricing_type')));
 
             if ($datesChanged) {
+                $accommodation = Accommodation::find($data['accommodation_id']);
                 $guests = $data['guests_count'] ?? ($data['adults_count'] ?? $reservation->guests_count);
                 $prices = $pricing->calculateStayTotal(
-                    $data['accommodation_id'],
+                    $accommodation,
                     $data['check_in_date'],
                     $data['check_out_date'],
                     $guests,

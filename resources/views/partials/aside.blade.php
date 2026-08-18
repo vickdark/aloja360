@@ -202,7 +202,7 @@ async function handleChangePassword() {
         try {
             window.Notify.loading('Actualizando contraseña...');
             
-            const response = await fetch('{{ route("password.update.ajax") }}', {
+            const response = await fetch('{{ route("profile.password.update") }}', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

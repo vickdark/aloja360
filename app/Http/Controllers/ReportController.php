@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Accommodation;
+use App\Services\ReportService;
 use Illuminate\Http\Request;
-use App\Models\Reservation;
-use App\Models\Payment;
-use App\Models\Expense;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ReportController extends Controller
@@ -14,18 +13,50 @@ class ReportController extends Controller
 
     public function index(Request $request)
     {
-        // Si hay autorización para 'reports.index', la verificamos, pero como no hay un modelo específico,
-        // validamos si el usuario tiene el permiso manualmente.
-        if (!auth()->user()->hasRole('admin') && !(auth()->user()->role && auth()->user()->role->permissions()->where('slug', 'reports.index')->exists())) {
+        if (! auth()->user()->hasRole('admin')
+            && ! (auth()->user()->role
+                && auth()->user()->role->permissions()
+                    ->where('slug', 'reports.index')->exists())
+        ) {
             abort(403, 'No tienes permiso para ver reportes.');
         }
 
-        // Lógica básica de reporte para mostrar en la vista
-        $totalReservations = Reservation::count();
-        $totalIncome = Payment::sum('amount');
-        $totalExpenses = Expense::sum('amount');
-        $balance = $totalIncome - $totalExpenses;
+        $dateFrom = $request->query('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->query('date_to', now()->toDateString());
+        $accommodationId = $request->query('accommodation_id');
 
-        return view('reports.index', compact('totalReservations', 'totalIncome', 'totalExpenses', 'balance'));
+        $report = new ReportService();
+        $kpis = $report->getKPIs($dateFrom, $dateTo, $accommodationId);
+        $cleaning = $report->getCleaningSummary($dateFrom, $dateTo, $accommodationId);
+        $maintenance = $report->getMaintenanceSummary($dateFrom, $dateTo, $accommodationId);
+        $accommodations = Accommodation::orderBy('name')->get();
+
+        return view('reports.index', compact(
+            'kpis',
+            'cleaning',
+            'maintenance',
+            'dateFrom',
+            'dateTo',
+            'accommodationId',
+            'accommodations'
+        ));
+    }
+
+    public function data(Request $request)
+    {
+        $dateFrom = $request->query('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->query('date_to', now()->toDateString());
+        $accommodationId = $request->query('accommodation_id');
+
+        $report = new ReportService();
+
+        return response()->json([
+            'monthly_trend' => $report->getMonthlyTrend($dateFrom, $dateTo, $accommodationId),
+            'income_by_method' => $report->getIncomeByMethod($dateFrom, $dateTo, $accommodationId),
+            'top_accommodations' => $report->getTopAccommodations($dateFrom, $dateTo, $accommodationId),
+            'reservation_status' => $report->getReservationStatusDistribution($dateFrom, $dateTo, $accommodationId),
+            'recent_transactions' => $report->getRecentTransactions($dateFrom, $dateTo, $accommodationId),
+            'daily_revenue' => $report->getDailyRevenue($dateFrom, $dateTo, $accommodationId),
+        ]);
     }
 }

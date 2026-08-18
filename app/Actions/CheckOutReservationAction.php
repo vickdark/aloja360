@@ -42,8 +42,9 @@ class CheckOutReservationAction
             // Finalizar estadía
             if ($reservation->stay) {
                 $reservation->stay()->update([
-                    'check_out_at' => $now,
-                    'status' => 'completed', // O el equivalente
+                    'actual_check_out_at' => $now,
+                    'checked_out_by' => $changedBy,
+                    'check_out_notes' => $notes ?: null,
                 ]);
             }
 

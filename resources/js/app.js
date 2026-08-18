@@ -26,6 +26,7 @@ import { initCleaningIndex } from './pages/cleaning/index';
 import { initMaintenanceIndex } from './pages/maintenance/index';
 import { initExpensesIndex } from './pages/expenses/index';
 import { initBusinessesIndex } from './pages/businesses/index';
+import { initReportsIndex } from './pages/reports/index';
 
 //Opciones de expotacion para Grid JS 
 import { jsPDF } from 'jspdf';
@@ -58,6 +59,7 @@ window.initCleaningIndex = initCleaningIndex;
 window.initMaintenanceIndex = initMaintenanceIndex;
 window.initExpensesIndex = initExpensesIndex;
 window.initBusinessesIndex = initBusinessesIndex;
+window.initReportsIndex = initReportsIndex;
 
 // Initialize
 Alpine.start();

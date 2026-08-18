@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function () {
 
     // Reportes
     Route::get('reports', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/data', [\App\Http\Controllers\ReportController::class, 'data'])->name('reports.data');
 
     // API Routes (AJAX calls)
     Route::prefix('api/v1')->group(function () {
@@ -112,7 +113,8 @@ Route::middleware('auth')->group(function () {
     Route::post('permissions/sync', [PermissionController::class, 'sync'])->name('permissions.sync');
     Route::get('permissions/sync-stream', [PermissionController::class, 'syncStream'])->name('permissions.sync_stream');
     // Perfil y Seguridad
-    Route::put('/password', [PasswordController::class, 'update'])->name('password.update.ajax');
+    Route::get('/profile/password', [PasswordController::class, 'show'])->name('profile.password');
+    Route::put('/profile/password', [PasswordController::class, 'update'])->name('profile.password.update');
 });
 
 require __DIR__.'/auth.php';

@@ -60,7 +60,7 @@
                                     @disabled($reservation->status->value === 'checked_out' || $reservation->status->value === 'cancelled') required>
                                     @foreach($guests as $g)
                                         <option value="{{ $g->id }}" {{ $reservation->primary_guest_id == $g->id ? 'selected' : '' }}>
-                                            {{ $g->full_name }} {{ $g->phone ? "($g->phone)" : '' }}
+                                            {{ $g->fullName() }} {{ $g->phone ? "($g->phone)" : '' }}
                                         </option>
                                     @endforeach
                                 </select>

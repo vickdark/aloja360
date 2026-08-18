@@ -36,14 +36,14 @@
                     <div class="text-muted small">{{ optional(auth()->user()->role)->nombre ?? 'Usuario' }}</div>
                 </li>
                 <li>
-                    <a class="dropdown-item rounded-2 py-2" href="#">
+                    <a class="dropdown-item rounded-2 py-2" href="{{ route('profile.password') }}">
                         <i class="fa-solid fa-user-circle me-2 text-muted"></i> Mi Perfil
                     </a>
                 </li>
                 <li>
-                    <button class="dropdown-item rounded-2 py-2" type="button" onclick="handleChangePassword()">
+                    <a class="dropdown-item rounded-2 py-2" href="{{ route('profile.password') }}">
                         <i class="fa-solid fa-key me-2 text-muted"></i> Cambiar Contraseña
-                    </button>
+                    </a>
                 </li>
                 <li><hr class="dropdown-divider mx-2"></li>
                 <li>

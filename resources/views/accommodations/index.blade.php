@@ -114,7 +114,7 @@
         $activeStatus = $status ?? '';
     @endphp
 
-    <div class="d-flex flex-wrap gap-2 mb-4">
+    <div class="d-none d-md-flex flex-wrap gap-2 mb-4">
         @foreach($statusFilters as $value => $filter)
             @php
                 $qs = $value === '' ? $baseQuery : array_replace($baseQuery, ['status' => $value]);
@@ -132,6 +132,42 @@
                 </span>
             </a>
         @endforeach
+    </div>
+
+    <div class="d-md-none mb-4">
+        @php
+            $activeFilter = $statusFilters[$activeStatus] ?? $statusFilters[''];
+            $activeBtnClass = $activeStatus === ''
+                ? "btn-{$activeFilter['color']} shadow-sm"
+                : "btn-outline-{$activeFilter['color']} bg-white border";
+        @endphp
+        <div class="dropdown">
+            <button class="btn {{ $activeBtnClass }} rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fa-solid {{ $activeFilter['icon'] }}"></i>
+                <span>{{ $activeFilter['label'] }}</span>
+                <span class="badge {{ $activeStatus === '' ? 'bg-white bg-opacity-25 text-white' : 'bg-light text-dark border' }} rounded-pill px-2 py-0 small">
+                    {{ $activeFilter['count'] }}
+                </span>
+            </button>
+            <ul class="dropdown-menu shadow-sm border-0 rounded-3 p-2">
+                @foreach($statusFilters as $value => $filter)
+                    @php
+                        $qs = $value === '' ? $baseQuery : array_replace($baseQuery, ['status' => $value]);
+                        $isActive = $activeStatus === $value;
+                    @endphp
+                    <li>
+                        <a href="{{ route('accommodations.index', array_filter($qs)) }}"
+                           class="dropdown-item rounded-2 d-flex align-items-center gap-2 py-2 {{ $isActive ? 'active' : '' }}">
+                            <i class="fa-solid {{ $filter['icon'] }}"></i>
+                            <span class="flex-grow-1">{{ $filter['label'] }}</span>
+                            <span class="badge {{ $isActive ? 'bg-white bg-opacity-25 text-white' : 'bg-light text-dark border' }} rounded-pill px-2 py-0 small">
+                                {{ $filter['count'] }}
+                            </span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
     </div>
 
     @php

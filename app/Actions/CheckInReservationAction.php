@@ -44,8 +44,9 @@ class CheckInReservationAction
                 [
                     'accommodation_id' => $reservation->accommodation_id,
                     'primary_guest_id' => $reservation->primary_guest_id,
-                    'check_in_at' => $now,
-                    'status' => 'active', // Podría requerir un Enum si se define después
+                    'actual_check_in_at' => $now,
+                    'checked_in_by' => $changedBy,
+                    'actual_guests_count' => $reservation->guests_count,
                 ]
             );
 

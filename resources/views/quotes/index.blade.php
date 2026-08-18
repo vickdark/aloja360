@@ -21,7 +21,7 @@
     </div>
 
     <!-- Contadores -->
-    <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+    <div class="row row-cols-2 row-cols-md-4 g-2 g-sm-3 mb-4">
         @php
             $counts = [
                 [
@@ -59,13 +59,13 @@
             <div class="col">
                 <a href="{{ route('quotes.index', ['status' => $c['status']]) }}" class="text-decoration-none">
                     <div class="card border-0 bg-{{ $c['color'] }} bg-opacity-10 border-{{ $c['color'] }} border-opacity-25 shadow-sm rounded-4 transition-all hover-lift">
-                        <div class="card-body p-3 d-flex align-items-center gap-3">
-                            <div class="bg-{{ $c['color'] }} text-white rounded-3 p-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                                <i class="fa-solid {{ $c['icon'] }} fs-4"></i>
+                        <div class="card-body p-2 p-sm-3 d-flex align-items-center gap-2 gap-sm-3">
+                            <div class="bg-{{ $c['color'] }} text-white rounded-3 p-2 p-sm-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                <i class="fa-solid {{ $c['icon'] }} fs-6 fs-sm-4"></i>
                             </div>
-                            <div>
-                                <div class="small text-muted">{{ $c['label'] }}</div>
-                                <h4 class="fw-bold mb-0 text-dark">{{ $c['num'] }}</h4>
+                            <div class="min-w-0">
+                                <div class="small text-muted text-truncate">{{ $c['label'] }}</div>
+                                <h5 class="fw-bold mb-0 text-dark">{{ $c['num'] }}</h5>
                             </div>
                         </div>
                     </div>
@@ -84,6 +84,9 @@
 <style>
     .transition-all { transition: all 0.2s ease; }
     .hover-lift:hover { transform: translateY(-2px); }
+    @media (min-width: 576px) {
+        .fs-sm-4 { font-size: 1.5rem !important; }
+    }
 </style>
 @endsection
 

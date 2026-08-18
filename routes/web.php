@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
 
     // Alojamientos
     Route::get('accommodations/available', [AccommodationController::class, 'available'])->name('accommodations.available');
+    Route::delete('accommodations/{accommodation}/images/{image}', [AccommodationController::class, 'destroyImage'])->name('accommodations.destroyImage');
     Route::resource('accommodations', AccommodationController::class);
 
     // Huéspedes

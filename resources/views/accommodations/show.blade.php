@@ -65,6 +65,70 @@
     <div class="row g-4">
         <!-- Columna Principal -->
         <div class="col-lg-8">
+            <!-- Galería de Imágenes -->
+            @if($accommodation->images->count() > 0)
+                <div class="card border-0 shadow-soft rounded-4 mb-4 overflow-hidden">
+                    <div class="card-body p-0">
+                        <!-- Imagen Principal / Carrusel -->
+                        <div id="accommodationGallery" class="carousel slide" data-bs-ride="false">
+                            <div class="carousel-inner">
+                                @foreach($accommodation->images as $image)
+                                    <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
+                                        <div class="gallery-main-image" style="position:relative;">
+                                            <img src="{{ Storage::disk($image->disk)->url($image->path) }}" class="d-block w-100" alt="{{ $image->caption ?? $accommodation->name }}" style="max-height: 480px; object-fit: cover;">
+                                            @if($image->caption)
+                                                <div class="gallery-caption-bar">{{ $image->caption }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if($accommodation->images->count() > 1)
+                                <button class="gallery-nav-btn gallery-nav-prev" type="button" data-bs-target="#accommodationGallery" data-bs-slide="prev">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+                                <button class="gallery-nav-btn gallery-nav-next" type="button" data-bs-target="#accommodationGallery" data-bs-slide="next">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+
+                                <div class="gallery-counter-badge">
+                                    <i class="fa-solid fa-images me-1"></i> <span id="galleryCurrentIndex">1</span> / {{ $accommodation->images->count() }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Thumbnails -->
+                        @if($accommodation->images->count() > 1)
+                            <div class="gallery-thumbnails p-3">
+                                <div class="d-flex gap-2 overflow-auto pb-1" style="scrollbar-width: thin;">
+                                    @foreach($accommodation->images as $image)
+                                        <button type="button"
+                                                class="gallery-thumb-btn flex-shrink-0 {{ $loop->first ? 'active' : '' }}"
+                                                data-bs-target="#accommodationGallery"
+                                                data-bs-slide-to="{{ $loop->index }}"
+                                                onclick="updateGalleryCounter({{ $loop->iteration }})">
+                                            <img src="{{ Storage::disk($image->disk)->url($image->path) }}" alt="{{ $image->caption ?? '' }}">
+                                            @if($image->is_primary)
+                                                <span class="gallery-thumb-star"><i class="fa-solid fa-star"></i></span>
+                                            @endif
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @else
+                <div class="card border-0 shadow-soft rounded-4 mb-4">
+                    <div class="card-body text-center py-5 text-muted">
+                        <i class="fa-solid fa-camera-retro fs-1 opacity-25 mb-3"></i>
+                        <p class="mb-1 fw-bold">Sin imágenes registradas</p>
+                        <small>Agrega fotos desde la opción <a href="{{ route('accommodations.edit', $accommodation) }}">Editar</a>.</small>
+                    </div>
+                </div>
+            @endif
+
             <!-- Descripción -->
             <div class="card border-0 shadow-soft rounded-4 mb-4">
                 <div class="card-body p-4">
@@ -287,5 +351,255 @@
 
 <style>
     .shadow-soft { box-shadow: 0 10px 25px rgba(0,0,0,0.03); }
+
+    /* === Gallery === */
+    .gallery-main-image { overflow: hidden; }
+    .gallery-main-image img { transition: transform 0.3s ease; }
+    .gallery-main-image:hover img { transform: scale(1.02); }
+
+    .gallery-caption-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.65));
+        color: #fff;
+        padding: 24px 20px 14px;
+        font-size: 0.9rem;
+    }
+
+    .gallery-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.85);
+        border: none;
+        color: #333;
+        font-size: 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        z-index: 10;
+    }
+    .gallery-nav-btn:hover { background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .gallery-nav-prev { left: 14px; }
+    .gallery-nav-next { right: 14px; }
+
+    .gallery-counter-badge {
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+    }
+
+    .gallery-thumbnails {
+        background: #f8f9fa;
+        border-top: 1px solid #eee;
+    }
+
+    .gallery-thumb-btn {
+        width: 72px;
+        height: 54px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        padding: 0;
+        background: none;
+        transition: all 0.2s;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .gallery-thumb-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+    .gallery-thumb-btn:hover { border-color: #adb5bd; }
+    .gallery-thumb-btn.active { border-color: var(--bs-primary); box-shadow: 0 0 0 2px rgba(13,110,253,0.25); }
+
+    .gallery-thumb-star {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: var(--bs-success);
+        color: #fff;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5rem;
+    }
+
+    @media (max-width: 575.98px) {
+        .gallery-nav-btn { width: 36px; height: 36px; font-size: 0.8rem; }
+        .gallery-nav-prev { left: 8px; }
+        .gallery-nav-next { right: 8px; }
+        .gallery-thumb-btn { width: 56px; height: 42px; }
+    }
+
+    /* === Lightbox === */
+    .lb-close {
+        position: absolute; top: 20px; right: 20px; width: 48px; height: 48px;
+        border-radius: 50%; background: rgba(255,255,255,0.12); border: none; color: #fff;
+        font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: background 0.2s; z-index: 10;
+    }
+    .lb-close:hover { background: rgba(255,255,255,0.3); }
+
+    .lb-image {
+        max-width: 90vw; max-height: 88vh; object-fit: contain; border-radius: 8px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.6); user-select: none;
+        animation: lbFadeIn 0.2s ease;
+    }
+    @keyframes lbFadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+    .lb-nav {
+        position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px;
+        border-radius: 50%; background: rgba(255,255,255,0.12); border: none; color: #fff;
+        font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: background 0.2s; z-index: 10; backdrop-filter: blur(4px);
+    }
+    .lb-nav:hover { background: rgba(255,255,255,0.3); }
+    .lb-prev { left: 20px; }
+    .lb-next { right: 20px; }
+
+    .lb-counter {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.5); color: #fff; padding: 6px 16px; border-radius: 20px;
+        font-size: 0.85rem; font-weight: 500; backdrop-filter: blur(4px);
+    }
+
+    .lb-caption {
+        position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+        color: #fff; font-size: 0.95rem; text-align: center; max-width: 80vw;
+        text-shadow: 0 1px 4px rgba(0,0,0,0.6); padding: 0 16px;
+    }
+
+    @media (max-width: 575.98px) {
+        .lb-nav { width: 40px; height: 40px; font-size: 0.9rem; }
+        .lb-prev { left: 10px; }
+        .lb-next { right: 10px; }
+        .lb-close { width: 40px; height: 40px; top: 12px; right: 12px; }
+    }
 </style>
+
+<script>
+function updateGalleryCounter(index) {
+    const counter = document.getElementById('galleryCurrentIndex');
+    if (counter) counter.textContent = index;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const carousel = document.getElementById('accommodationGallery');
+    if (!carousel) return;
+
+    carousel.addEventListener('slide.bs.carousel', function (e) {
+        const to = e.to;
+        const counter = document.getElementById('galleryCurrentIndex');
+        if (counter) counter.textContent = to + 1;
+    });
+
+    // Collect all gallery image sources
+    const galleryImages = [];
+    carousel.querySelectorAll('.carousel-item img').forEach(img => {
+        galleryImages.push({ src: img.src, alt: img.alt });
+    });
+
+    if (galleryImages.length === 0) return;
+
+    let lightboxIndex = 0;
+    let lightboxOverlay = null;
+
+    function openLightbox(startIndex) {
+        lightboxIndex = startIndex;
+        renderLightbox();
+    }
+
+    function renderLightbox() {
+        if (!lightboxOverlay) {
+            lightboxOverlay = document.createElement('div');
+            lightboxOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+            lightboxOverlay.addEventListener('click', (ev) => {
+                if (ev.target === lightboxOverlay) closeLightbox();
+            });
+            document.body.appendChild(lightboxOverlay);
+        }
+
+        const img = galleryImages[lightboxIndex];
+        const hasMany = galleryImages.length > 1;
+
+        lightboxOverlay.innerHTML = `
+            <button class="lb-close" type="button">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            ${hasMany ? `<button class="lb-nav lb-prev" type="button"><i class="fa-solid fa-chevron-left"></i></button>` : ''}
+            <img class="lb-image" src="${img.src}" alt="${img.alt || ''}">
+            ${hasMany ? `<button class="lb-nav lb-next" type="button"><i class="fa-solid fa-chevron-right"></i></button>` : ''}
+            ${hasMany ? `<div class="lb-counter">${lightboxIndex + 1} / ${galleryImages.length}</div>` : ''}
+            ${img.alt ? `<div class="lb-caption">${img.alt}</div>` : ''}
+        `;
+
+        // Close
+        lightboxOverlay.querySelector('.lb-close').addEventListener('click', closeLightbox);
+
+        // Nav
+        if (hasMany) {
+            lightboxOverlay.querySelector('.lb-prev').addEventListener('click', (e) => {
+                e.stopPropagation();
+                lightboxIndex = (lightboxIndex - 1 + galleryImages.length) % galleryImages.length;
+                renderLightbox();
+            });
+            lightboxOverlay.querySelector('.lb-next').addEventListener('click', (e) => {
+                e.stopPropagation();
+                lightboxIndex = (lightboxIndex + 1) % galleryImages.length;
+                renderLightbox();
+            });
+        }
+    }
+
+    function closeLightbox() {
+        if (lightboxOverlay) {
+            lightboxOverlay.remove();
+            lightboxOverlay = null;
+        }
+    }
+
+    // Open lightbox on image click
+    carousel.querySelectorAll('.carousel-item img').forEach((imgEl, idx) => {
+        imgEl.style.cursor = 'zoom-in';
+        imgEl.addEventListener('click', () => openLightbox(idx));
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function (ev) {
+        if (!lightboxOverlay) return;
+        if (ev.key === 'Escape') closeLightbox();
+        if (ev.key === 'ArrowLeft') {
+            lightboxIndex = (lightboxIndex - 1 + galleryImages.length) % galleryImages.length;
+            renderLightbox();
+        }
+        if (ev.key === 'ArrowRight') {
+            lightboxIndex = (lightboxIndex + 1) % galleryImages.length;
+            renderLightbox();
+        }
+    });
+});
+</script>
 @endsection

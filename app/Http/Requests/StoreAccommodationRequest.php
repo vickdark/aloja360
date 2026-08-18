@@ -45,6 +45,10 @@ class StoreAccommodationRequest extends FormRequest
             'sort_order' => 'nullable|integer',
             'amenities' => 'nullable|array',
             'amenities.*' => 'exists:amenities,id',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'required|file|mimes:jpeg,jpg,png,webp|max:5120',
+            'image_captions' => 'nullable|array',
+            'image_captions.*' => 'nullable|string|max:255',
         ];
     }
 }

@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <form action="{{ route('accommodations.update', $accommodation) }}" method="POST">
+    <form action="{{ route('accommodations.update', $accommodation) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -177,6 +177,65 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Imágenes -->
+                <div class="card border-0 shadow-soft rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <h4 class="mb-2 fw-bold text-dark d-flex align-items-center">
+                            <i class="fa-solid fa-camera text-primary me-2"></i> Imágenes del Alojamiento
+                        </h4>
+                        <p class="text-muted small mb-4">
+                            Imágenes actuales: <strong>{{ $accommodation->images->count() }}</strong> / 10.
+                            Puedes agregar más (máx. 10 total, 5 MB por imagen).
+                        </p>
+
+                        @if($accommodation->images->count() > 0)
+                            <div class="row g-3 mb-4" id="existing-images-grid">
+                                @foreach($accommodation->images as $image)
+                                    <div class="col-6 col-md-4 col-lg-3" id="existing-image-{{ $image->id }}">
+                                        <div class="image-thumb-wrapper existing-image">
+                                            @if($image->is_primary)
+                                                <span class="image-order-badge bg-success">
+                                                    <i class="fa-solid fa-star" style="font-size:0.6rem;"></i>
+                                                </span>
+                                            @else
+                                                <span class="image-order-badge">{{ $loop->iteration }}</span>
+                                            @endif
+                                            <img src="{{ Storage::disk($image->disk)->url($image->path) }}" alt="{{ $image->caption ?? $accommodation->name }}">
+                                            @if($image->caption)
+                                                <div class="image-caption-display">{{ $image->caption }}</div>
+                                            @endif
+                                            <form action="{{ route('accommodations.destroyImage', [$accommodation, $image]) }}" method="POST" onsubmit="return confirm('¿Eliminar esta imagen?');" class="image-remove-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="image-remove-btn">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($accommodation->images->count() < 10)
+                            <div id="image-upload-area">
+                                <label class="image-dropzone" id="dropzone">
+                                    <input type="file" name="images[]" id="image-input" accept="image/jpeg,image/png,image/webp" multiple class="d-none">
+                                    <div class="text-center py-4">
+                                        <i class="fa-solid fa-cloud-arrow-up fs-1 text-primary opacity-50 mb-2"></i>
+                                        <p class="mb-1 fw-bold text-dark">Haz clic o arrastra imágenes aquí</p>
+                                        <small class="text-muted">Subir nuevas imágenes (quedan {{ 10 - $accommodation->images->count() }} espacios)</small>
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="image-preview-container" class="row g-3 mt-2"></div>
+                            <div id="image-counter" class="text-muted small mt-3" style="display:none;">
+                                <i class="fa-solid fa-images me-1"></i> <span id="image-count-text">0</span> nuevas imágenes seleccionadas
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             <!-- Columna Lateral -->
@@ -326,6 +385,106 @@
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
     .transition-all { transition: all 0.2s ease; }
+
+    /* === Image Upload === */
+    .image-dropzone {
+        display: block;
+        border: 2px dashed #dee2e6;
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #f8f9fa;
+    }
+    .image-dropzone:hover, .image-dropzone.dragover {
+        border-color: var(--bs-primary);
+        background: rgba(13, 110, 253, 0.03);
+    }
+    .image-thumb-wrapper {
+        position: relative;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        aspect-ratio: 4/3;
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        transition: border-color 0.2s;
+    }
+    .image-thumb-wrapper:hover {
+        border-color: var(--bs-primary);
+    }
+    .image-thumb-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .image-thumb-wrapper .image-remove-btn {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        transition: background 0.2s;
+    }
+    .image-thumb-wrapper .image-remove-btn:hover {
+        background: #dc3545;
+    }
+    .image-thumb-wrapper .image-caption-input {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.5);
+        border: none;
+        color: #fff;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        outline: none;
+    }
+    .image-thumb-wrapper .image-caption-input::placeholder {
+        color: rgba(255,255,255,0.6);
+    }
+    .image-thumb-wrapper .image-order-badge {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        background: var(--bs-primary);
+        color: #fff;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+    .image-caption-display {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.5);
+        color: #fff;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .image-remove-form {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
 </style>
 
 <script>
@@ -347,6 +506,106 @@
 
     pricingTypeSel.addEventListener('change', togglePricingFields);
     togglePricingFields();
+
+    // === Image Upload ===
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('image-input');
+    const previewContainer = document.getElementById('image-preview-container');
+    const counterEl = document.getElementById('image-counter');
+    const countText = document.getElementById('image-count-text');
+    if (!dropzone || !fileInput) return;
+
+    const existingCount = document.querySelectorAll('#existing-images-grid .col-6').length;
+    const MAX_TOTAL = 10;
+    let selectedFiles = [];
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', () => {
+        handleFiles(fileInput.files);
+    });
+
+    function handleFiles(files) {
+        const remaining = MAX_TOTAL - existingCount - selectedFiles.length;
+        const toAdd = Array.from(files).slice(0, remaining);
+
+        toAdd.forEach(file => {
+            if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) return;
+            if (file.size > 5 * 1024 * 1024) return;
+            selectedFiles.push(file);
+        });
+
+        renderPreviews();
+        syncFileInput();
+    }
+
+    function renderPreviews() {
+        previewContainer.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-thumb-wrapper';
+
+            const badge = document.createElement('span');
+            badge.className = 'image-order-badge';
+            badge.textContent = existingCount + index + 1;
+
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'image-remove-btn';
+            removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            removeBtn.addEventListener('click', () => {
+                selectedFiles.splice(index, 1);
+                renderPreviews();
+                syncFileInput();
+            });
+
+            const captionInput = document.createElement('input');
+            captionInput.type = 'text';
+            captionInput.className = 'image-caption-input';
+            captionInput.name = 'image_captions[]';
+            captionInput.placeholder = 'Pie de foto (opcional)';
+            captionInput.maxLength = 255;
+
+            wrapper.appendChild(badge);
+            wrapper.appendChild(img);
+            wrapper.appendChild(removeBtn);
+            wrapper.appendChild(captionInput);
+            col.appendChild(wrapper);
+            previewContainer.appendChild(col);
+        });
+
+        if (selectedFiles.length > 0) {
+            counterEl.style.display = 'block';
+            countText.textContent = selectedFiles.length;
+            dropzone.style.display = 'none';
+        } else {
+            counterEl.style.display = 'none';
+            dropzone.style.display = 'block';
+        }
+    }
+
+    function syncFileInput() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        fileInput.files = dt.files;
+    }
 })();
 </script>
 @endsection

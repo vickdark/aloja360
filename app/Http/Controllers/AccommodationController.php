@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Accommodation;
+use App\Models\AccommodationImage;
 use App\Models\Amenity;
 use App\Services\AvailabilityService;
 use App\Http\Requests\StoreAccommodationRequest;
@@ -10,11 +11,14 @@ use App\Http\Requests\UpdateAccommodationRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AccommodationController extends Controller
 {
     use AuthorizesRequests;
+
+    private const MAX_IMAGES = 10;
 
     /**
      * Listado de alojamientos.
@@ -104,6 +108,8 @@ class AccommodationController extends Controller
             $data['slug'] = Str::slug($data['name']);
         }
 
+        unset($data['images']);
+
         $accommodation = Accommodation::create($data);
 
         if ($request->filled('amenities')) {
@@ -118,8 +124,10 @@ class AccommodationController extends Controller
             $accommodation->amenities()->sync($syncData);
         }
 
+        $this->handleImageUploads($request, $accommodation);
+
         return redirect()
-            ->route('accommodations.index')
+            ->route('accommodations.show', $accommodation)
             ->with('success', 'Alojamiento creado exitosamente.');
     }
 
@@ -134,7 +142,7 @@ class AccommodationController extends Controller
             'amenities',
             'ratePeriods',
             'blockedPeriods',
-            'images',
+            'images' => fn ($q) => $q->orderBy('sort_order'),
             'inventoryItems',
         ]);
 
@@ -154,7 +162,10 @@ class AccommodationController extends Controller
 
         $amenities = Amenity::all();
 
-        $accommodation->load('amenities');
+        $accommodation->load([
+            'amenities',
+            'images' => fn ($q) => $q->orderBy('sort_order'),
+        ]);
 
         return view(
             'accommodations.edit',
@@ -176,6 +187,8 @@ class AccommodationController extends Controller
         if (empty($data['slug'])) {
             $data['slug'] = Str::slug($data['name']);
         }
+
+        unset($data['images']);
 
         $accommodation->update($data);
 
@@ -199,9 +212,29 @@ class AccommodationController extends Controller
             $accommodation->amenities()->detach();
         }
 
+        $this->handleImageUploads($request, $accommodation);
+
         return redirect()
-            ->route('accommodations.index')
+            ->route('accommodations.show', $accommodation)
             ->with('success', 'Alojamiento actualizado exitosamente.');
+    }
+
+    /**
+     * Eliminar imagen del alojamiento.
+     */
+    public function destroyImage(Accommodation $accommodation, AccommodationImage $image)
+    {
+        $this->authorize('update', $accommodation);
+
+        abort_unless($image->accommodation_id === $accommodation->id, 404);
+
+        Storage::disk($image->disk)->delete($image->path);
+
+        $image->delete();
+
+        return redirect()
+            ->route('accommodations.edit', $accommodation)
+            ->with('success', 'Imagen eliminada.');
     }
 
     /**
@@ -212,6 +245,10 @@ class AccommodationController extends Controller
         $this->authorize('delete', $accommodation);
 
         try {
+            foreach ($accommodation->images as $image) {
+                Storage::disk($image->disk)->delete($image->path);
+            }
+
             $accommodation->delete();
 
             return redirect()
@@ -267,5 +304,36 @@ class AccommodationController extends Controller
             );
 
         return response()->json($availableAccommodations);
+    }
+
+    /**
+     * Procesar subida de imágenes para un alojamiento.
+     */
+    private function handleImageUploads(
+        Request $request,
+        Accommodation $accommodation
+    ): void {
+        if (! $request->hasFile('images')) {
+            return;
+        }
+
+        $existingCount = $accommodation->images()->count();
+        $files = $request->file('images');
+        $captions = $request->input('image_captions', []);
+        $maxNew = self::MAX_IMAGES - $existingCount;
+
+        foreach (array_slice($files, 0, $maxNew) as $index => $file) {
+            $path = $file->store('accommodations/' . $accommodation->id, 'public');
+
+            $accommodation->images()->create([
+                'path' => $path,
+                'disk' => 'public',
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'caption' => $captions[$index] ?? null,
+                'is_primary' => $accommodation->images()->count() === 0 && $index === 0,
+                'sort_order' => $existingCount + $index,
+            ]);
+        }
     }
 }

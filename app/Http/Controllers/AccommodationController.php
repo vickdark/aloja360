@@ -60,7 +60,7 @@ class AccommodationController extends Controller
             $query->where('type', $type);
         }
 
-        $accommodations = $query->orderBy('code')->get();
+        $accommodations = $query->with('images')->orderBy('code')->get();
 
         if ($request->wantsJson()) {
             return response()->json($accommodations);

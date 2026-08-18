@@ -226,16 +226,30 @@
         @php
             $color = $statusColors[$accommodation->status->value] ?? 'secondary';
             $icon = $statusIcons[$accommodation->status->value] ?? 'fa-circle';
+            $fallbackIcons = ['fa-house', 'fa-house-chimney', 'fa-hotel', 'fa-building', 'fa-warehouse', 'fa-house-user', 'fa-house-laptop', 'fa-campground', 'fa-tent', 'fa-tree-city', 'fa-house-flag'];
+            $randomIcon = $fallbackIcons[array_rand($fallbackIcons)];
+            $randomImage = $accommodation->images->isNotEmpty()
+                ? $accommodation->images->random()
+                : null;
         @endphp
         <div class="col d-flex align-items-stretch">
             <div class="card w-100 border-0 shadow-sm rounded-4 overflow-hidden transition-all hover-lift">
-                <div class="card-body p-3 p-md-4 d-flex flex-column h-100 position-relative pt-4 pt-md-5">
-                    <div class="position-absolute top-0 end-0 p-2 p-md-3 z-1">
+                <div class="card-accommodation-header position-relative">
+                    @if($randomImage)
+                        <img src="{{ Storage::url($randomImage->path) }}" alt="{{ $accommodation->name }}" class="card-accommodation-img">
+                    @else
+                        <div class="card-accommodation-placeholder">
+                            <i class="fa-solid {{ $randomIcon }}"></i>
+                        </div>
+                    @endif
+                    <div class="position-absolute bottom-0 end-0 p-2 p-md-3 z-1">
                         <span class="badge rounded-pill text-bg-{{ $color }} px-3 py-2 d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.75rem;">
                             <i class="fa-solid {{ $icon }}"></i>
                             <span>{{ $accommodation->status->label() }}</span>
                         </span>
                     </div>
+                </div>
+                <div class="card-body p-3 p-md-4 d-flex flex-column h-100 position-relative">
 
                     <div class="mb-3 pb-1">
                         <div class="d-flex align-items-center gap-2 mb-1">
@@ -361,6 +375,28 @@
         .grid-cols-features { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
+    .card-accommodation-header {
+        height: 160px;
+        overflow: hidden;
+        background: #e9ecef;
+    }
+    .card-accommodation-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .card-accommodation-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: rgba(255, 255, 255, 0.35);
+        font-size: 3.5rem;
+    }
+
     @media (max-width: 575.98px) {
         .search-form-wrapper,
         .type-filter,
@@ -378,6 +414,28 @@
         }
         .quick-access-icon i {
             font-size: 1rem !important;
+        }
+        .card-accommodation-header {
+            height: 110px;
+        }
+        .card-accommodation-placeholder {
+            font-size: 2.2rem;
+        }
+        .grid-cols-features {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+        .grid-cols-features .p-2 {
+            padding: 0.35rem !important;
+        }
+        .grid-cols-features .p-2 i {
+            font-size: 0.7rem;
+            margin-bottom: 0.1rem !important;
+        }
+        .grid-cols-features .p-2 .fw-bold {
+            font-size: 0.75rem;
+        }
+        .grid-cols-features .p-2 .text-muted {
+            font-size: 0.6rem;
         }
     }
 </style>

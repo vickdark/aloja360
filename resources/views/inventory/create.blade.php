@@ -15,9 +15,9 @@
         @csrf
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card border-0 shadow-soft rounded-4 mb-4">
                     <div class="card-body p-4">
-                        <h4 class="mb-4 fw-bold"><i class="fas fa-info-circle text-primary me-2"></i>Identificación</h4>
+                        <h4 class="mb-4 fw-bold text-dark d-flex align-items-center"><i class="fas fa-info-circle text-primary me-2"></i>Identificación</h4>
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label small fw-bold text-muted">Nombre del Ítem</label>
@@ -75,9 +75,9 @@
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card border-0 shadow-soft rounded-4 mb-4">
                     <div class="card-body p-4">
-                        <h4 class="mb-4 fw-bold"><i class="fas fa-chart-line text-success me-2"></i>Control de Stock y Valor</h4>
+                        <h4 class="mb-4 fw-bold text-dark d-flex align-items-center"><i class="fas fa-chart-line text-success me-2"></i>Control de Stock y Valor</h4>
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-muted">Unidad de Medida</label>
@@ -115,13 +115,32 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg rounded-4 shadow-sm fw-bold py-3">
-                        <i class="fas fa-save me-2"></i> Registrar Ítem
-                    </button>
+                <div class="card border-0 shadow-soft rounded-4 sticky-top overflow-hidden" style="top: 20px;">
+                    <div class="card-header bg-primary text-white border-0 p-4">
+                        <h4 class="mb-0 fw-bold d-flex align-items-center justify-content-between">
+                            <i class="fas fa-calculator me-2"></i> Resumen
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="p-3 rounded-4 bg-gradient-to-r from-primary-subtle to-light border border-primary-subtle mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-5">REGISTRAR ÍTEM</span>
+                            </div>
+                            <div class="form-text text-center mt-1 small">Se guardará un registro histórico en inventario.</div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-4 shadow-sm fw-bold py-3">
+                                <i class="fas fa-save me-2"></i> Registrar Ítem
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </form>
 </div>
+
+<style>
+    .shadow-soft { box-shadow: 0 10px 25px rgba(0,0,0,0.03); }
+</style>
 @endsection

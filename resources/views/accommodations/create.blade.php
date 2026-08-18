@@ -11,7 +11,7 @@
         </div>
         <div class="col-auto">
             <a href="{{ route('accommodations.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
-                <i class="fas fa-arrow-left me-2"></i> Volver al Listado
+                <i class="fa-solid fa-arrow-left me-2"></i> Volver al Listado
             </a>
         </div>
     </div>
@@ -24,7 +24,7 @@
                 <div class="card border-0 shadow-soft rounded-4 mb-4">
                     <div class="card-body p-4">
                         <h4 class="mb-4 fw-bold text-dark d-flex align-items-center">
-                            <i class="fas fa-info-circle text-primary me-2"></i> Información Básica
+                            <i class="fa-solid fa-info-circle text-primary me-2"></i> Información Básica
                         </h4>
 
                         <div class="row g-3">
@@ -73,7 +73,7 @@
 
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold text-muted">
-                                    <i class="fas fa-map-location-dot text-primary me-1"></i> Dirección (Opcional)
+                                    <i class="fa-solid fa-map-location-dot text-primary me-1"></i> Dirección (Opcional)
                                 </label>
                                 <input type="text" name="address" id="address" value="{{ old('address') }}" class="form-control @error('address') is-invalid @enderror" placeholder="Ubicación física...">
                             </div>
@@ -85,34 +85,34 @@
                 <div class="card border-0 shadow-soft rounded-4 mb-4">
                     <div class="card-body p-4">
                         <h4 class="mb-4 fw-bold text-dark d-flex align-items-center">
-                            <i class="fas fa-layer-group text-primary me-2"></i> Características y Capacidad
+                            <i class="fa-solid fa-layer-group text-primary me-2"></i> Características y Capacidad
                         </h4>
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-muted">Máx. Huéspedes</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-users"></i></span>
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-users"></i></span>
                                     <input type="number" name="max_guests" id="max_guests" value="{{ old('max_guests', 2) }}" class="form-control @error('max_guests') is-invalid @enderror" min="1" required>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-muted">Habitaciones</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-bed"></i></span>
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-bed"></i></span>
                                     <input type="number" name="bedrooms" id="bedrooms" value="{{ old('bedrooms', 1) }}" class="form-control" min="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-muted">Camas</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-hotel"></i></span>
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-hotel"></i></span>
                                     <input type="number" name="beds" id="beds" value="{{ old('beds', 1) }}" class="form-control" min="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-muted">Baños</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-bath"></i></span>
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-bath"></i></span>
                                     <input type="number" name="bathrooms" id="bathrooms" value="{{ old('bathrooms', 1) }}" class="form-control" min="0" step="0.5">
                                 </div>
                             </div>
@@ -140,7 +140,7 @@
                 <div class="card border-0 shadow-soft rounded-4 mb-4">
                     <div class="card-body p-4">
                         <h4 class="mb-4 fw-bold text-dark d-flex align-items-center">
-                            <i class="fas fa-sparkles text-primary me-2"></i> Amenidades
+                            <i class="fa-solid fa-sparkles text-primary me-2"></i> Amenidades
                             <small class="text-muted ms-2 small fw-normal">Marca los servicios con los que cuenta el alojamiento.</small>
                         </h4>
                         <div class="row g-3">
@@ -150,7 +150,7 @@
                                         <input type="checkbox" name="amenities[]" value="{{ $amenity->id }}" id="amenity_{{ $amenity->id }}" class="amenity-checkbox d-none">
                                         <div class="p-3 border rounded-3 h-100 d-flex align-items-center gap-3 transition-all amenity-content">
                                             <div class="amenity-icon rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
-                                                <i class="{{ $amenity->icon ?? 'fa-solid fa-check' }} fs-4"></i>
+                                                <i class="{{ $amenity->icon_class }} fs-4"></i>
                                             </div>
                                             <div class="flex-grow-1 min-w-0">
                                                 <div class="fw-bold text-dark">{{ $amenity->name }}</div>
@@ -176,7 +176,7 @@
                 <div class="card border-0 shadow-soft rounded-4 bg-gradient-to-br from-primary to-primary-dark mb-4 text-white" style="background: linear-gradient(135deg, var(--bs-primary) 0%, #8a3d12 100%);">
                     <div class="card-body p-4">
                         <h4 class="mb-4 fw-bold d-flex align-items-center">
-                            <i class="fas fa-tags me-2"></i> Tarifas
+                            <i class="fa-solid fa-tags me-2"></i> Tarifas
                         </h4>
                         
                         <div class="mb-3">
@@ -244,7 +244,7 @@
                 <div class="card border-0 shadow-soft rounded-4 mb-4">
                     <div class="card-body p-4">
                         <h5 class="mb-3 fw-bold text-dark">
-                            <i class="fas fa-circle-info text-primary me-2"></i> Orden y Reglas
+                            <i class="fa-solid fa-circle-info text-primary me-2"></i> Orden y Reglas
                         </h5>
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Orden de Aparición</label>
@@ -260,7 +260,7 @@
                 <!-- Guardar -->
                 <div class="d-grid gap-2">
                     <button type="submit" class="btn btn-primary btn-lg rounded-4 shadow-sm fw-bold py-3">
-                        <i class="fas fa-save me-2"></i> Guardar Alojamiento
+                        <i class="fa-solid fa-save me-2"></i> Guardar Alojamiento
                     </button>
                 </div>
             </div>

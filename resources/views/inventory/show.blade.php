@@ -15,7 +15,7 @@
 
     <div class="row g-4">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="card border-0 shadow-soft rounded-4 overflow-hidden mb-4">
                 <div class="card-body p-5 text-center" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
                     <i class="fa-solid fa-boxes-stacked display-1 text-white mb-3 opacity-75"></i>
                     <h2 class="text-white fw-bold display-6 mb-0">{{ $inventoryItem->current_quantity }}</h2>
@@ -92,7 +92,7 @@
             </div>
 
             @if($inventoryItem->description)
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card border-0 shadow-soft rounded-4 mb-4">
                 <div class="card-header bg-white py-3 border-0">
                     <h6 class="m-0 font-weight-bold text-primary"><i class="fa-solid fa-file-lines me-2"></i>Notas / Descripción</h6>
                 </div>

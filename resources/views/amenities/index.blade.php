@@ -29,7 +29,7 @@
                 <div class="card-body p-4 d-flex flex-column h-100">
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <div class="rounded-4 bg-primary-subtle p-3 text-primary" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
-                            <i class="{{ $amenity->icon ?? 'fa-solid fa-check' }} fa-2x"></i>
+                            <i class="{{ $amenity->icon_class }} fa-2x"></i>
                         </div>
                         <div class="flex-grow-1 min-w-0">
                             <h5 class="mb-0 fw-bold text-truncate" title="{{ $amenity->name }}">{{ $amenity->name }}</h5>

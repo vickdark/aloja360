@@ -34,13 +34,49 @@ class AccommodationController extends Controller
             abort(403, 'No autorizado.');
         }
 
-        $accommodations = Accommodation::all();
+        $search = $request->query('search');
+        $status = $request->query('status');
+        $type = $request->query('type');
+
+        $query = Accommodation::query();
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($type) {
+            $query->where('type', $type);
+        }
+
+        $accommodations = $query->orderBy('code')->get();
 
         if ($request->wantsJson()) {
             return response()->json($accommodations);
         }
 
-        return view('accommodations.index', compact('accommodations'));
+        $statusCounts = Accommodation::selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $totalCount = Accommodation::count();
+
+        return view('accommodations.index', compact(
+            'accommodations',
+            'search',
+            'status',
+            'type',
+            'statusCounts',
+            'totalCount'
+        ));
     }
 
     /**

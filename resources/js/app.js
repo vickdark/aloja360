@@ -14,6 +14,7 @@ import Notifications from './modules/Notifications';
 
 // Import Pages
 import { initUsersIndex } from './pages/usuarios/index';
+import { initInventoryIndex } from './pages/inventory/index';
 
 //Opciones de expotacion para Grid JS 
 import { jsPDF } from 'jspdf';
@@ -34,6 +35,7 @@ window.XLSX = XLSX;
 window.DataGrid = DataGrid;
 window.Notify = Notifications;
 window.initUsersIndex = initUsersIndex;
+window.initInventoryIndex = initInventoryIndex;
 
 // Initialize
 Alpine.start();

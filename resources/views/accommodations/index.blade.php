@@ -2,24 +2,136 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <h1 class="h3 mb-0 text-gray-800 d-flex align-items-center flex-wrap gap-2">
-            <i class="fa-solid fa-house text-primary me-2"></i> Gestión de Alojamientos
-            
-        </h1>
-        <div class="d-flex flex-wrap gap-2">
-            <form action="{{ url()->current() }}" method="GET" class="input-group" style="max-width: 350px; width: 100%;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-start align-items-lg-center mb-4 gap-3">
+        <div class="mb-md-1">
+            <h1 class="h3 mb-0 text-gray-800 d-flex align-items-center flex-wrap gap-2">
+                <i class="fa-solid fa-house text-primary me-2"></i> Gestión de Alojamientos
+                <span class="badge bg-light text-dark rounded-pill fs-6 fw-semibold border px-3 py-2">
+                    {{ $totalCount }} alojamientos
+                </span>
+            </h1>
+        </div>
+        <div class="d-flex flex-column flex-sm-row flex-wrap justify-content-start justify-content-md-end gap-2 align-items-stretch">
+            <form action="{{ url()->current() }}" method="GET" class="input-group bg-light rounded-pill border-0 search-form-wrapper flex-grow-1 flex-sm-grow-0" style="min-width: 240px;">
+                @if(request()->has('status'))
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                @endif
                 @if(request()->has('type'))
                     <input type="hidden" name="type" value="{{ request('type') }}">
                 @endif
-                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" name="search" class="form-control border-start-0 bg-light ps-0" placeholder="Buscar por nombre o código..." value="{{ request('search') }}">
-                <button type="submit" class="btn btn-light border"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <span class="input-group-text bg-transparent border-0 ps-3">
+                    <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                </span>
+                <input
+                    type="text"
+                    name="search"
+                    class="form-control bg-transparent border-0 shadow-none py-2 px-0"
+                    placeholder="Buscar nombre, código..."
+                    value="{{ request('search') }}"
+                >
+                @if(request('search'))
+                    <a href="{{ route('accommodations.index', array_filter(request()->except('search'))) }}"
+                       class="input-group-text bg-transparent border-0 text-muted text-decoration-none"
+                       title="Limpiar búsqueda">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                @endif
             </form>
-            <a href="{{ route('accommodations.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+
+            <select class="form-select bg-light border-0 rounded-pill py-2 px-3 type-filter"
+                    onchange="if(this.value){location.href=this.value;}else{location.href='{{ route('accommodations.index', array_filter(request()->except('type'))) }}';}">
+                <option value="">Todos los tipos</option>
+                @foreach(App\Enums\AccommodationType::cases() as $t)
+                    @php
+                        $qs = array_replace(request()->except('type'), ['type' => $t->value]);
+                        $selected = request('type') === $t->value ? 'selected' : '';
+                    @endphp
+                    <option value="{{ route('accommodations.index', array_filter($qs)) }}" {{ $selected }}>
+                        {{ $t->label() }}
+                    </option>
+                @endforeach
+            </select>
+
+            <a href="{{ route('accommodations.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm flex-shrink-0 d-inline-flex align-items-center justify-content-center">
                 <i class="fa-solid fa-plus me-1"></i> Nuevo
             </a>
         </div>
+    </div>
+
+    @php
+        $statusFilters = [
+            '' => [
+                'label' => 'Todos',
+                'icon'  => 'fa-layer-group',
+                'color' => 'secondary',
+                'count' => $totalCount,
+            ],
+            'available' => [
+                'label' => 'Disponibles',
+                'icon'  => 'fa-circle-check',
+                'color' => 'success',
+                'count' => $statusCounts['available'] ?? 0,
+            ],
+            'reserved' => [
+                'label' => 'Reservados',
+                'icon'  => 'fa-calendar-xmark',
+                'color' => 'warning',
+                'count' => $statusCounts['reserved'] ?? 0,
+            ],
+            'occupied' => [
+                'label' => 'Ocupados',
+                'icon'  => 'fa-user-lock',
+                'color' => 'primary',
+                'count' => $statusCounts['occupied'] ?? 0,
+            ],
+            'pending_cleaning' => [
+                'label' => 'Limpieza',
+                'icon'  => 'fa-sparkles',
+                'color' => 'info',
+                'count' => $statusCounts['pending_cleaning'] ?? 0,
+            ],
+            'cleaning' => [
+                'label' => 'En Limpieza',
+                'icon'  => 'fa-broom',
+                'color' => 'secondary',
+                'count' => $statusCounts['cleaning'] ?? 0,
+            ],
+            'maintenance' => [
+                'label' => 'Mantenimiento',
+                'icon'  => 'fa-wrench',
+                'color' => 'danger',
+                'count' => $statusCounts['maintenance'] ?? 0,
+            ],
+            'blocked' => [
+                'label' => 'Bloqueados',
+                'icon'  => 'fa-ban',
+                'color' => 'dark',
+                'count' => $statusCounts['blocked'] ?? 0,
+            ],
+        ];
+
+        $baseQuery = array_filter(request()->except('status'));
+        $activeStatus = $status ?? '';
+    @endphp
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach($statusFilters as $value => $filter)
+            @php
+                $qs = $value === '' ? $baseQuery : array_replace($baseQuery, ['status' => $value]);
+                $isActive = $activeStatus === $value;
+                $btnClass = $isActive
+                    ? "btn-{$filter['color']} shadow-sm"
+                    : "btn-outline-{$filter['color']} bg-white border";
+            @endphp
+            <a href="{{ route('accommodations.index', array_filter($qs)) }}"
+               class="btn rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2 {{ $btnClass }}">
+                <i class="fa-solid {{ $filter['icon'] }}"></i>
+                <span>{{ $filter['label'] }}</span>
+                <span class="badge {{ $isActive ? 'bg-white bg-opacity-25 text-white' : 'bg-light text-dark border' }} rounded-pill px-2 py-0 small">
+                    {{ $filter['count'] }}
+                </span>
+            </a>
+        @endforeach
     </div>
 
     @php
@@ -65,7 +177,7 @@
     @endphp
 
     @if(!empty($visibleLinks))
-    <div class="row row-cols-2 row-cols-md-4 g-3 mb-5">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-3 mb-4 mb-sm-5">
         @foreach($visibleLinks as $key => $link)
         <div class="col d-flex align-items-stretch">
             <a href="{{ $link['route'] }}" class="quick-access-card d-flex align-items-center gap-3 p-3 w-100 rounded-4 border-0 shadow-sm text-decoration-none text-reset transition-all hover-lift"
@@ -81,7 +193,7 @@
                         <i class="fa-solid fa-boxes-stacked text-primary me-1 opacity-75"></i> {{ $link['count'] }} registros
                     </span>
                 </div>
-                <i class="fa-solid fa-arrow-right text-muted opacity-50 flex-shrink-0 ms-1"></i>
+                <i class="fa-solid fa-arrow-right text-muted opacity-50 flex-shrink-0 ms-1 d-none d-sm-inline"></i>
             </a>
         </div>
         @endforeach
@@ -109,7 +221,7 @@
         ];
     @endphp
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3 g-md-4">
         @forelse($accommodations as $accommodation)
         @php
             $color = $statusColors[$accommodation->status->value] ?? 'secondary';
@@ -117,11 +229,11 @@
         @endphp
         <div class="col d-flex align-items-stretch">
             <div class="card w-100 border-0 shadow-sm rounded-4 overflow-hidden transition-all hover-lift">
-                <div class="card-body p-4 d-flex flex-column h-100 position-relative pt-5">
-                    <div class="position-absolute top-0 end-0 p-3 z-1">
+                <div class="card-body p-3 p-md-4 d-flex flex-column h-100 position-relative pt-4 pt-md-5">
+                    <div class="position-absolute top-0 end-0 p-2 p-md-3 z-1">
                         <span class="badge rounded-pill text-bg-{{ $color }} px-3 py-2 d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.75rem;">
                             <i class="fa-solid {{ $icon }}"></i>
-                            <span class="d-none d-sm-inline">{{ $accommodation->status->label() }}</span>
+                            <span>{{ $accommodation->status->label() }}</span>
                         </span>
                     </div>
 
@@ -129,7 +241,7 @@
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <span class="small text-muted fw-bold">#{{ $accommodation->code }}</span>
                         </div>
-                        <h5 class="card-title fw-bold mb-0 text-truncate" title="{{ $accommodation->name }}" style="max-width: calc(100% - 10px);">
+                        <h5 class="card-title fw-bold mb-0 text-truncate" title="{{ $accommodation->name }}">
                             {{ $accommodation->name }}
                         </h5>
                     </div>
@@ -148,44 +260,44 @@
                         @endif
                     </div>
 
-                    <div class="d-flex justify-content-between gap-1 mb-3 text-center">
-                        <div class="flex-fill p-2 bg-light-subtle rounded-3">
+                    <div class="d-grid grid-cols-features gap-2 mb-3 text-center">
+                        <div class="p-2 bg-light-subtle rounded-3">
                             <i class="fa-solid fa-users d-block text-primary mb-1"></i>
-                            <span class="fw-bold d-block small">{{ $accommodation->max_guests }}</span>
-                            <span class="text-muted" style="font-size: 0.65rem;">Pax</span>
+                            <span class="fw-bold d-block">{{ $accommodation->max_guests }}</span>
+                            <span class="text-muted small">Pax</span>
                         </div>
-                        <div class="flex-fill p-2 bg-light-subtle rounded-3">
+                        <div class="p-2 bg-light-subtle rounded-3">
                             <i class="fa-solid fa-bed d-block text-primary mb-1"></i>
-                            <span class="fw-bold d-block small">{{ $accommodation->bedrooms ?? 0 }}</span>
-                            <span class="text-muted" style="font-size: 0.65rem;">Hab.</span>
+                            <span class="fw-bold d-block">{{ $accommodation->bedrooms ?? 0 }}</span>
+                            <span class="text-muted small">Hab.</span>
                         </div>
-                        <div class="flex-fill p-2 bg-light-subtle rounded-3">
+                        <div class="p-2 bg-light-subtle rounded-3">
                             <i class="fa-solid fa-bath d-block text-primary mb-1"></i>
-                            <span class="fw-bold d-block small">{{ $accommodation->bathrooms ?? 0 }}</span>
-                            <span class="text-muted" style="font-size: 0.65rem;">Baño</span>
+                            <span class="fw-bold d-block">{{ $accommodation->bathrooms ?? 0 }}</span>
+                            <span class="text-muted small">Baño</span>
                         </div>
-                        <div class="flex-fill p-2 bg-light-subtle rounded-3">
+                        <div class="p-2 bg-light-subtle rounded-3">
                             <i class="fa-solid fa-dollar-sign d-block text-success mb-1"></i>
-                            <span class="fw-bold d-block small text-success text-truncate" title="{{ number_format($accommodation->base_price, 0) }}">
+                            <span class="fw-bold d-block text-success text-truncate" title="{{ number_format($accommodation->base_price, 0) }}">
                                 {{ number_format($accommodation->base_price, 0) }}
                             </span>
-                            <span class="text-muted" style="font-size: 0.65rem;">Noche</span>
+                            <span class="text-muted small">Noche</span>
                         </div>
                     </div>
 
-                    <div class="d-grid gap-1 pt-2 border-top">
-                        <div class="d-flex gap-1 justify-content-stretch">
-                            <a href="{{ route('accommodations.show', $accommodation) }}" class="btn btn-outline-primary btn-sm rounded-pill flex-fill">
-                                <i class="fa-solid fa-eye"></i>
+                    <div class="d-grid gap-2 pt-2 border-top">
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('accommodations.show', $accommodation) }}" class="btn btn-outline-primary btn-sm rounded-3 flex-fill py-2 px-0 px-md-2">
+                                <i class="fa-solid fa-eye me-1"></i><span class="d-none d-sm-inline">Ver</span>
                             </a>
-                            <a href="{{ route('accommodations.edit', $accommodation) }}" class="btn btn-outline-warning btn-sm rounded-pill flex-fill">
-                                <i class="fa-solid fa-pen-to-square"></i>
+                            <a href="{{ route('accommodations.edit', $accommodation) }}" class="btn btn-outline-warning btn-sm rounded-3 flex-fill py-2 px-0 px-md-2">
+                                <i class="fa-solid fa-pen-to-square me-1"></i><span class="d-none d-sm-inline">Editar</span>
                             </a>
                             <form action="{{ route('accommodations.destroy', $accommodation) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar {{ $accommodation->name }}?');" class="flex-fill d-flex">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill w-100">
-                                    <i class="fa-solid fa-trash"></i>
+                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 w-100 py-2 px-0 px-md-2">
+                                    <i class="fa-solid fa-trash me-1"></i><span class="d-none d-sm-inline">Borrar</span>
                                 </button>
                             </form>
                         </div>
@@ -214,10 +326,59 @@
 
 <style>
     .transition-all { transition: all 0.3s ease; }
-    .hover-lift:hover { 
-        transform: translateY(-5px); 
-        box-shadow: 0 1rem 3rem rgba(0,0,0,.1) !important; 
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.1) !important;
         border: 1px solid rgba(0,0,0,.05);
+    }
+
+    .search-form-wrapper {
+        transition: box-shadow .2s ease, background-color .2s ease;
+    }
+    .search-form-wrapper:focus-within {
+        background-color: #fff;
+        box-shadow: 0 0 0 .25rem rgba(78,115,223,.25);
+    }
+    .search-form-wrapper .form-control:focus {
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    .type-filter {
+        min-width: 170px;
+        transition: box-shadow .2s ease, background-color .2s ease;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    }
+    .type-filter:focus {
+        box-shadow: 0 0 0 .25rem rgba(78,115,223,.25);
+        background-color: #fff;
+    }
+
+    .grid-cols-features {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @media (min-width: 480px) {
+        .grid-cols-features { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 575.98px) {
+        .search-form-wrapper,
+        .type-filter,
+        .btn-new-mobile {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+        .quick-access-card {
+            padding: 0.85rem !important;
+            gap: 0.6rem !important;
+        }
+        .quick-access-icon {
+            width: 44px !important;
+            height: 44px !important;
+        }
+        .quick-access-icon i {
+            font-size: 1rem !important;
+        }
     }
 </style>
 @endsection

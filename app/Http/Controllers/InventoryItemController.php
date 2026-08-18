@@ -15,8 +15,40 @@ class InventoryItemController extends Controller
     public function index()
     {
         $this->authorize('viewAny', InventoryItem::class);
-        $inventoryItems = InventoryItem::with('accommodation')->orderBy('category')->orderBy('name')->paginate(20);
-        return view('inventory.index', compact('inventoryItems'));
+
+        if (request()->ajax() || request()->wantsJson()) {
+            $query = InventoryItem::with('accommodation');
+
+            $limit = request()->get('limit', 10);
+            $offset = request()->get('offset', 0);
+            $search = request()->get('search');
+
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('sku', 'like', "%{$search}%")
+                      ->orWhere('barcode', 'like', "%{$search}%")
+                      ->orWhere('category', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $total = $query->count();
+
+            $inventoryItems = $query->orderBy('category')
+                                    ->orderBy('name')
+                                    ->offset($offset)
+                                    ->limit($limit)
+                                    ->get();
+
+            return response()->json([
+                'data' => $inventoryItems,
+                'total' => (int) $total,
+                'status' => 'success'
+            ]);
+        }
+
+        return view('inventory.index');
     }
 
     public function create()

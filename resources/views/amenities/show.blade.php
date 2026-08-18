@@ -22,7 +22,7 @@
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                 <div class="card-body text-center p-5" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
                     <div class="display-1 text-white mb-3">
-                        <i class="{{ $amenity->icon ?? 'fa-solid fa-check' }}"></i>
+                        <i class="{{ $amenity->icon_class }}"></i>
                     </div>
                     <h2 class="text-white fw-bold mb-0">{{ $amenity->name }}</h2>
                     <p class="text-white-50 mb-0">{{ $amenity->category ?? 'Sin categoría' }}</p>

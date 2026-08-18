@@ -76,7 +76,10 @@ class ReservationController extends Controller
             return response()->json($reservations);
         }
 
+        $reservations = $query->orderBy('check_in_date', 'desc')->paginate(10)->withQueryString();
+
         return view('reservations.index', compact(
+            'reservations',
             'total_count',
             'pending_count',
             'confirmed_count',

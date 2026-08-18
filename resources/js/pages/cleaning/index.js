@@ -2,7 +2,7 @@ export function initCleaningIndex(config) {
     const { routes, tokens } = config;
 
     const statusColors = { pending:'warning', assigned:'info', in_progress:'primary', completed:'success', cancelled:'secondary' };
-    const statusLabels = { pending:'Pendiente', assigned:'Asignado', in_progress:'En Progreso', completed:'Completado', cancelled:'Cancelado' };
+    const statusLabels = { pending:'Pendiente', assigned:'Asignada', in_progress:'En progreso', completed:'Completada', cancelled:'Cancelada' };
 
     const grid = new DataGrid("wrapper", {
         url: routes.index,

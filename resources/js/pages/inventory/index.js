@@ -4,6 +4,8 @@ export function initInventoryIndex(config) {
     const fmt = (n, decimals = 0) =>
         Intl.NumberFormat('es-CO', { maximumFractionDigits: decimals }).format(n ?? 0);
 
+    const unitLabels = { unit:'und', u:'und', und:'und', mt:'m', m:'m', lt:'l', l:'l', kg:'kg', g:'g', lb:'lb', pz:'pza', pza:'pza', box:'caja', caja:'caja', roll:'rollo', rollo:'rollo', pack:'pqt', pqt:'pqt', set:'juego', juego:'juego', pair:'par', par:'par', botella:'botella', bottle:'botella', bag:'bolsa', bolsa:'bolsa', roll:'rollo', rollo:'rollo', sheet:'lámina', lámina:'lámina', tab:'lámina', flat:'lámina', individual:'individual', daily:'diario', monthly:'mensual' };
+
     const grid = new DataGrid("wrapper", {
         url: routes.index,
         columns: [

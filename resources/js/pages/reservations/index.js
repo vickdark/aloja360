@@ -3,6 +3,7 @@ export function initReservationsIndex(config) {
 
     const statusColors = { pending:'warning', confirmed:'primary', checked_in:'success', checked_out:'info', cancelled:'danger', no_show:'secondary' };
     const statusIcons  = { pending:'fa-clock', confirmed:'fa-circle-check', checked_in:'fa-door-open', checked_out:'fa-door-closed', cancelled:'fa-ban', no_show:'fa-user-xmark' };
+    const statusLabels = { pending:'Pendiente', confirmed:'Confirmada', checked_in:'Check-in', checked_out:'Check-out', cancelled:'Cancelada', no_show:'No show' };
 
     const grid = new DataGrid("wrapper", {
         url: routes.index,
@@ -68,7 +69,7 @@ export function initReservationsIndex(config) {
                 const st = r.status?.value || r.status || 'pending';
                 const color = statusColors[st] || 'secondary';
                 const icon = statusIcons[st] || 'fa-circle';
-                const label = r.status?.label ? r.status.label() : st;
+                const label = statusLabels[st] || st;
                 return DataGrid.html(`<span class="badge rounded-pill text-bg-${color} px-3 py-2 d-inline-flex align-items-center gap-1 fw-bold shadow-sm"><i class="fa-solid ${icon}"></i>${label}</span>`);
             }},
             { id: 'total', name: "Total", width: "130px", formatter: (cell, row) => {

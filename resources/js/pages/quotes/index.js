@@ -2,6 +2,7 @@ export function initQuotesIndex(config) {
     const { routes, tokens } = config;
 
     const statusColors = { draft:'secondary', sent:'primary', accepted:'success', rejected:'danger', expired:'warning', converted:'info' };
+    const statusLabels = { draft:'Borrador', sent:'Enviada', accepted:'Aceptada', rejected:'Rechazada', expired:'Expirada', converted:'Convertida' };
 
     const grid = new DataGrid("wrapper", {
         url: routes.index,
@@ -74,7 +75,7 @@ export function initQuotesIndex(config) {
                 const q = row.cells[row.cells.length - 1]?.data || {};
                 const st = q.status?.value || q.status || 'draft';
                 const color = statusColors[st] || 'secondary';
-                const label = q.status?.label ? q.status.label() : st;
+                const label = statusLabels[st] || st;
                 return DataGrid.html(`<span class="badge rounded-pill text-bg-${color} px-3 py-2 shadow-sm">${label}</span>`);
             }},
             { id: 'actions', name: "Acciones", sort: false, formatter: (cell, row) => {

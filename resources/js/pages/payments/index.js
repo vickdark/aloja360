@@ -2,6 +2,7 @@ export function initPaymentsIndex(config) {
     const { routes } = config;
 
     const statusColors = { pending:'warning', confirmed:'success', rejected:'danger', cancelled:'secondary' };
+    const statusLabels = { pending:'Pendiente', confirmed:'Confirmado', rejected:'Rechazado', cancelled:'Cancelado' };
 
     new DataGrid("wrapper", {
         url: routes.index,
@@ -39,7 +40,7 @@ export function initPaymentsIndex(config) {
                 const p = row.cells[row.cells.length - 1]?.data || {};
                 const st = p.status?.value || p.status || 'pending';
                 const color = statusColors[st] || 'secondary';
-                const label = p.status?.label ? p.status.label() : st;
+                const label = statusLabels[st] || st;
                 return DataGrid.html(`<span class="badge bg-${color}">${label}</span>`);
             }},
             { id: 'date', name: "Fecha", formatter: (cell, row) => {

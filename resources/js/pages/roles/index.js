@@ -8,10 +8,6 @@ export function initRolesIndex(config) {
                 const r = row.cells[row.cells.length - 1]?.data || {};
                 return DataGrid.html(`<span class="fw-bold text-dark">${r.nombre || ''}</span>`);
             }},
-            { id: 'slug', name: "Identificador (Slug)", width: "180px", formatter: (cell, row) => {
-                const r = row.cells[row.cells.length - 1]?.data || {};
-                return DataGrid.html(`<code class="small text-primary bg-primary-subtle px-2 py-1 rounded">${r.slug || ''}</code>`);
-            }},
             { id: 'users_count', name: "Usuarios", width: "130px", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
                 const n = r.users_count ?? 0;
@@ -43,7 +39,7 @@ export function initRolesIndex(config) {
                 return DataGrid.html(html);
             }}
         ],
-        mapData: (r) => [r, r, r, r, r]
+        mapData: (r) => [r, r, r, r]
     }).render();
 
     window.deleteRole = async function(url, csrf, disabled) {

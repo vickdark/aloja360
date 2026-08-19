@@ -9,36 +9,77 @@ use App\Models\Business;
 use App\Models\Amenity;
 use App\Models\Guest;
 use App\Models\InventoryItem;
+use App\Models\Service;
 use App\Models\Usuarios\Usuario;
 use App\Models\Roles\Role;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class DemoDataSeeder extends Seeder
 {
+    /**
+     * Run demo data seeds (for development and staging testing only).
+     */
     public function run(): void
     {
-        $business = Business::first();
-        if (!$business) {
-            return;
-        }
+        $business = Business::firstOrCreate(
+            ['name' => 'Aloja360 Demo'],
+            [
+                'legal_name' => 'Aloja360 SAS',
+                'tax_id' => '901234567-8',
+                'email' => 'info@aloja360.com',
+                'phone' => '+57 1 234 5678',
+                'whatsapp' => '+57 300 123 4567',
+                'address' => 'Calle 123 # 45-67',
+                'city' => 'Medellín',
+                'country' => 'CO',
+                'timezone' => 'America/Bogota',
+                'currency' => 'COP',
+                'status' => 'active',
+            ]
+        );
 
         $adminRole = Role::where('slug', 'admin')->first();
         $receptionistRole = Role::where('slug', 'receptionist')->first() ?? $adminRole;
+        $cleanerRole = Role::where('slug', 'cleaner')->first() ?? $adminRole;
 
         $staffEmails = [
-            'recepcion@aloja360.com' => ['name' => 'Recepcionista Demo', 'roleSlug' => 'receptionist'],
-            'limpieza@aloja360.com' => ['name' => 'Personal Limpieza', 'roleSlug' => 'cleaner'],
+            'recepcion@aloja360.com' => ['name' => 'Recepcionista Demo', 'role' => $receptionistRole],
+            'limpieza@aloja360.com' => ['name' => 'Personal Limpieza', 'role' => $cleanerRole],
         ];
 
         foreach ($staffEmails as $email => $data) {
-            $role = Role::where('slug', $data['roleSlug'])->first() ?? $adminRole;
-            $user = Usuario::firstOrCreate(
+            Usuario::firstOrCreate(
                 ['email' => $email],
                 [
                     'name' => $data['name'],
-                    'role_id' => $role?->id,
+                    'role_id' => $data['role']?->id,
                     'password' => bcrypt('password123'),
                     'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        $services = [
+            ['name' => 'Desayuno Campestre', 'category' => 'Alimentación', 'price' => 25000, 'price_type' => 'per_person_per_night'],
+            ['name' => 'Cena Gourmet', 'category' => 'Alimentación', 'price' => 45000, 'price_type' => 'per_person_per_night'],
+            ['name' => 'Transporte aeropuerto', 'category' => 'Transporte', 'price' => 80000, 'price_type' => 'per_trip'],
+            ['name' => 'Tour guiado ecológico', 'category' => 'Turismo', 'price' => 150000, 'price_type' => 'per_group'],
+            ['name' => 'Decoración romántica', 'category' => 'Especial', 'price' => 120000, 'price_type' => 'per_stay'],
+            ['name' => 'Leña para chimenea', 'category' => 'Extras', 'price' => 30000, 'price_type' => 'per_unit'],
+            ['name' => 'Mascota adicional', 'category' => 'Extras', 'price' => 50000, 'price_type' => 'per_stay'],
+            ['name' => 'Servicio de lavandería', 'category' => 'Servicios', 'price' => 20000, 'price_type' => 'per_load'],
+        ];
+
+        foreach ($services as $service) {
+            Service::firstOrCreate(
+                ['name' => $service['name']],
+                [
+                    ...$service,
+                    'description' => 'Servicio demo de ' . strtolower($service['name']),
+                    'is_taxable' => true,
+                    'tax_rate' => 19,
+                    'is_active' => true,
                 ]
             );
         }
@@ -59,7 +100,7 @@ class DemoDataSeeder extends Seeder
                 ['code' => $code],
                 [
                     'name' => $name,
-                    'slug' => \Str::slug($name),
+                    'slug' => Str::slug($name),
                     'type' => $type,
                     'status' => AccommodationStatus::Available,
                     'description' => "Hermoso alojamiento tipo {$type->label()} con capacidad para {$maxGuests} personas. Perfecto para disfrutar de la naturaleza y la tranquilidad.",
@@ -78,14 +119,16 @@ class DemoDataSeeder extends Seeder
         }
 
         $allAmenities = Amenity::all();
-        Accommodation::all()->each(function ($acc) use ($allAmenities) {
-            $selectedAmenities = $allAmenities->random(min(8, $allAmenities->count()));
-            $syncData = [];
-            foreach ($selectedAmenities as $amenity) {
-                $syncData[$amenity->id] = ['quantity' => rand(1, 3)];
-            }
-            $acc->amenities()->syncWithoutDetaching($syncData);
-        });
+        if ($allAmenities->isNotEmpty()) {
+            Accommodation::all()->each(function ($acc) use ($allAmenities) {
+                $selectedAmenities = $allAmenities->random(min(8, $allAmenities->count()));
+                $syncData = [];
+                foreach ($selectedAmenities as $amenity) {
+                    $syncData[$amenity->id] = ['quantity' => rand(1, 3)];
+                }
+                $acc->amenities()->syncWithoutDetaching($syncData);
+            });
+        }
 
         $defaultInventory = [
             ['Toallas', 'Baño', 6],
@@ -100,7 +143,7 @@ class DemoDataSeeder extends Seeder
             ['Nevera', 'Cocina', 1],
         ];
 
-        Accommodation::all()->each(function ($acc) use ($defaultInventory, $business) {
+        Accommodation::all()->each(function ($acc) use ($defaultInventory) {
             foreach ($defaultInventory as [$name, $category, $qty]) {
                 InventoryItem::firstOrCreate(
                     ['accommodation_id' => $acc->id, 'name' => $name],

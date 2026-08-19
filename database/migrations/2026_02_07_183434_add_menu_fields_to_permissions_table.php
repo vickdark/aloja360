@@ -16,10 +16,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('permissions', function (Blueprint $table) {
-            $table->boolean('is_menu')->default(false)->after('slug');
-            $table->string('icon')->nullable()->after('is_menu');
-            $table->string('module')->nullable()->after('icon');
-            $table->integer('order')->default(0)->after('module');
+            if (!Schema::hasColumn('permissions', 'is_menu')) {
+                $table->boolean('is_menu')->default(false)->after('slug');
+            }
+            if (!Schema::hasColumn('permissions', 'icon')) {
+                $table->string('icon')->nullable()->after('is_menu');
+            }
+            if (!Schema::hasColumn('permissions', 'module')) {
+                $table->string('module')->nullable()->after('icon');
+            }
+            if (!Schema::hasColumn('permissions', 'order')) {
+                $table->integer('order')->default(0)->after('module');
+            }
         });
 
         // Ejecutar la sincronización de permisos (escanea rutas y crea registros en BD)

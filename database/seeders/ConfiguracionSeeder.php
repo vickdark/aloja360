@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-
 use App\Models\Configuracion;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 
 class ConfiguracionSeeder extends Seeder
 {
@@ -18,19 +17,20 @@ class ConfiguracionSeeder extends Seeder
             // App settings
             [
                 'key' => 'app_name',
-                'value' => 'Laravel Boilerplate',
+                'value' => 'Aloja360',
                 'group' => 'app',
             ],
             [
                 'key' => 'app_subtitle',
-                'value' => 'Sistema en laravel',
+                'value' => 'Gestión Integral de Alojamientos',
                 'group' => 'app',
             ],
             [
                 'key' => 'app_logo_icon',
-                'value' => 'fa-rocket',
+                'value' => 'fa-solid fa-house-chimney',
                 'group' => 'app',
             ],
+
             // Colores de la interfaz
             [
                 'key' => 'color_primary',
@@ -52,36 +52,36 @@ class ConfiguracionSeeder extends Seeder
                 'value' => '#ffffff',
                 'group' => 'colores',
             ],
-            
+
             // Empresa settings
             [
                 'key' => 'empresa_nombre',
-                'value' => 'Mi Empresa S.A.',
+                'value' => 'Aloja360',
                 'group' => 'empresa',
             ],
             [
                 'key' => 'empresa_id_fiscal',
-                'value' => '900.000.000-1',
+                'value' => '',
                 'group' => 'empresa',
             ],
             [
                 'key' => 'empresa_direccion',
-                'value' => 'Calle 123 # 45 - 67, Ciudad',
+                'value' => '',
                 'group' => 'empresa',
             ],
             [
                 'key' => 'empresa_telefono',
-                'value' => '+57 300 000 0000',
+                'value' => '',
                 'group' => 'empresa',
             ],
             [
                 'key' => 'empresa_email',
-                'value' => 'contacto@miempresa.com',
+                'value' => 'admin@aloja360.com',
                 'group' => 'empresa',
             ],
             [
                 'key' => 'empresa_web',
-                'value' => 'www.miempresa.com',
+                'value' => '',
                 'group' => 'empresa',
             ],
         ];
@@ -89,5 +89,7 @@ class ConfiguracionSeeder extends Seeder
         foreach ($settings as $setting) {
             Configuracion::updateOrCreate(['key' => $setting['key']], $setting);
         }
+
+        Cache::forget('app_settings');
     }
 }

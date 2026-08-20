@@ -87,16 +87,20 @@
                                 <select name="accommodation_id" id="accommodation_id" class="form-select form-select-lg @error('accommodation_id') is-invalid @enderror" 
                                     @disabled($reservation->status->value === 'checked_out' || $reservation->status->value === 'cancelled') required>
                                     @foreach($accommodations as $a)
-                                        @php($pricingType = is_a($a->pricing_type, \App\Enums\PricingType::class) ? $a->pricing_type : \App\Enums\PricingType::tryFrom($a->pricing_type) ?? \App\Enums\PricingType::PerAccommodation)
-                                        @php($dpPricingType = is_a($a->day_pass_pricing_type, \App\Enums\PricingType::class) ? $a->day_pass_pricing_type : \App\Enums\PricingType::tryFrom($a->day_pass_pricing_type) ?? \App\Enums\PricingType::PerAccommodation)
+                                        @php
+                                            $pricingType = is_a($a->pricing_type, \App\Enums\PricingType::class) ? $a->pricing_type : \App\Enums\PricingType::tryFrom($a->pricing_type) ?? \App\Enums\PricingType::PerAccommodation;
+                                            $dpPricingType = is_a($a->day_pass_pricing_type, \App\Enums\PricingType::class) ? $a->day_pass_pricing_type : \App\Enums\PricingType::tryFrom($a->day_pass_pricing_type) ?? \App\Enums\PricingType::PerAccommodation;
+                                        @endphp
                                         <option value="{{ $a->id }}" 
                                             data-price="{{ $a->base_price }}"
                                             data-price-per-person="{{ $a->price_per_person ?? 0 }}"
+                                            data-price-per-child="{{ $a->price_per_child ?? $a->price_per_person ?? 0 }}"
                                             data-pricing-type="{{ $pricingType->value }}"
                                             data-allows-day-pass="{{ $a->allows_day_pass ? '1' : '0' }}"
                                             data-day-pass-pricing-type="{{ $dpPricingType->value }}"
                                             data-day-pass-base-price="{{ $a->day_pass_base_price ?? $a->base_price }}"
                                             data-day-pass-price-per-person="{{ $a->day_pass_price_per_person ?? $a->price_per_person ?? 0 }}"
+                                            data-day-pass-price-per-child="{{ $a->day_pass_price_per_child ?? $a->price_per_child ?? $a->day_pass_price_per_person ?? $a->price_per_person ?? 0 }}"
                                             data-cleaning="{{ $a->cleaning_fee ?? 0 }}"
                                             data-deposit="{{ $a->security_deposit ?? 0 }}"
                                             {{ $reservation->accommodation_id == $a->id ? 'selected' : '' }}>
@@ -158,7 +162,9 @@
                                 <label class="form-label small fw-bold text-muted">
                                     <i class="fa-solid fa-sack-dollar me-1"></i> Forma de Cobro
                                 </label>
-                                @php($resPricingType = is_a($reservation->pricing_type, \App\Enums\PricingType::class) ? $reservation->pricing_type : (\App\Enums\PricingType::tryFrom($reservation->pricing_type) ?? \App\Enums\PricingType::PerAccommodation))
+                                @php
+                                    $resPricingType = is_a($reservation->pricing_type, \App\Enums\PricingType::class) ? $reservation->pricing_type : (\App\Enums\PricingType::tryFrom($reservation->pricing_type) ?? \App\Enums\PricingType::PerAccommodation);
+                                @endphp
                                 <select name="pricing_type" id="pricing_type" class="form-select form-select-lg @error('pricing_type') is-invalid @enderror"
                                     @disabled($reservation->status->value === 'checked_out' || $reservation->status->value === 'cancelled')>
                                     @foreach(\App\Enums\PricingType::cases() as $pt)
@@ -391,8 +397,14 @@ function calculateEstimate() {
 
     const basePrice        = parseFloat(opt.getAttribute('data-price')) || 0;
     const pricePerPerson   = parseFloat(opt.getAttribute('data-price-per-person')) || 0;
+    let pricePerChild = pricePerPerson;
+    const rawChild = opt.getAttribute('data-price-per-child');
+    if(rawChild!==null && rawChild!==''){ const v=parseFloat(rawChild); if(!isNaN(v)) pricePerChild=v; }
     const dpBasePrice      = parseFloat(opt.getAttribute('data-day-pass-base-price')) || basePrice;
     const dpPricePerPerson = parseFloat(opt.getAttribute('data-day-pass-price-per-person')) || pricePerPerson;
+    let dpPricePerChild = pricePerChild;
+    const rawDpChild = opt.getAttribute('data-day-pass-price-per-child');
+    if(rawDpChild!==null && rawDpChild!==''){ const v=parseFloat(rawDpChild); if(!isNaN(v)) dpPricePerChild=v; }
 
     const pricingType = document.getElementById('pricing_type').value;
     const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
@@ -407,16 +419,22 @@ function calculateEstimate() {
 
     if (isDayPass) {
         if (pricingType === PER_PERSON) {
-            subtotal  = pax * dpPricePerPerson;
-            breakdown = `☀️ ${pax} persona(s) × $${fmt(dpPricePerPerson)} = $${fmt(subtotal)}`;
+            subtotal  = a * dpPricePerPerson + c * dpPricePerChild;
+            const parts = [];
+            if (a > 0) parts.push(`${a} adulto(s) × $${fmt(dpPricePerPerson)}`);
+            if (c > 0) parts.push(`${c} niño(s) × $${fmt(dpPricePerChild)}`);
+            breakdown = `☀️ ${parts.join(' + ')} = $${fmt(subtotal)}`;
         } else {
             subtotal  = dpBasePrice;
             breakdown = `☀️ Tarifa plana pasadía: $${fmt(dpBasePrice)}`;
         }
     } else {
         if (pricingType === PER_PERSON) {
-            subtotal  = nights * pax * pricePerPerson;
-            breakdown = `🌙 ${nights} noche(s) × ${pax} persona(s) × $${fmt(pricePerPerson)}`;
+            subtotal  = nights * (a * pricePerPerson + c * pricePerChild);
+            const parts = [];
+            if (a > 0) parts.push(`${a} adulto(s) × $${fmt(pricePerPerson)}`);
+            if (c > 0) parts.push(`${c} niño(s) × $${fmt(pricePerChild)}`);
+            breakdown = `🌙 ${nights} noche(s) × (${parts.join(' + ')}) = $${fmt(subtotal)}`;
         } else {
             subtotal  = nights * basePrice;
             breakdown = `🌙 ${nights} noche(s) × $${fmt(basePrice)}`;
@@ -461,6 +479,95 @@ calculateEstimate();
 if(document.getElementById('accommodation_id').value) {
     document.getElementById('accommodation_id').dispatchEvent(new Event('change'));
 }
+
+// Estimado del servidor: desglose real por noche (temporadas/modificadores) usando PricingService
+const serverEstimateRoute = @json(route('reservations.estimate'));
+let serverEstimateTimer = null;
+
+function triggerServerEstimate() {
+    clearTimeout(serverEstimateTimer);
+    serverEstimateTimer = setTimeout(refreshServerEstimate, 250);
+}
+
+async function refreshServerEstimate() {
+    const accSel = document.getElementById('accommodation_id');
+    const pricingSel = document.getElementById('pricing_type');
+    if (!accSel || !accSel.value || !pricingSel) return;
+
+    const isDayPass = !!(isDayPassSwitch && isDayPassSwitch.checked);
+    const checkIn = document.getElementById('check_in_date').value;
+    const a = parseInt(document.getElementById('adults_count').value) || 0;
+    const c = parseInt(document.getElementById('children_count').value) || 0;
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+        || document.querySelector('form input[name="_token"]')?.value || '';
+
+    const payload = {
+        accommodation_id: accSel.value,
+        check_in_date: checkIn,
+        check_out_date: isDayPass ? checkIn : document.getElementById('check_out_date').value,
+        pricing_type: pricingSel.value,
+        guests_count: Math.max(a + c, 1),
+        adults_count: a,
+        children_count: c,
+        is_day_pass: isDayPass ? 1 : 0,
+    };
+
+    try {
+        const res = await fetch(serverEstimateRoute, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || typeof data.subtotal !== 'number') return;
+        applyServerEstimate(data);
+    } catch (e) { /* conservar el cálculo local como respaldo */ }
+}
+
+function applyServerEstimate(data) {
+    const breakdownEl = document.getElementById('price_breakdown');
+    if (!breakdownEl) return;
+
+    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
+    const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
+    const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
+    document.getElementById('total_preview_text').innerText = fmt(data.subtotal + clean - disc + tax);
+
+    const snap = data.snapshot || {};
+    const lines = [];
+
+    if (data.is_day_pass) {
+        const price = typeof snap.applied_price === 'number' ? snap.applied_price : data.subtotal;
+        const labels = (snap.adjustments || []).map(x => x.label || x.name || '').filter(Boolean).join(' · ');
+        lines.push(`☀️ Pasadía = $${fmt(price)}` + (labels ? ` (${labels})` : ''));
+    } else if (snap.nights && typeof snap.nights === 'object' && !Array.isArray(snap.nights)) {
+        for (const [date, night] of Object.entries(snap.nights)) {
+            const dd = new Date(date + 'T00:00:00');
+            const day = `${String(dd.getDate()).padStart(2, '0')}/${String(dd.getMonth() + 1).padStart(2, '0')}/${dd.getFullYear()}`;
+            const labels = (night.adjustments || []).map(x => x.label || x.name || '').filter(Boolean).join(' · ');
+            const base = night.base_price_applied ? ` · base $${fmt(night.base_price_applied)}` : '';
+            lines.push(`🌙 ${day}${labels ? ' · ' + labels : ''} = $${fmt(night.applied_price)}${base}`);
+        }
+    } else {
+        return; // sin desglose por noche del servidor: conservar la estimación local
+    }
+
+    breakdownEl.innerText = lines.join('\n');
+}
+
+['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'cleaning_fee', 'discount_total', 'tax_total'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('change', triggerServerEstimate);
+        el.addEventListener('input', triggerServerEstimate);
+    }
+});
+triggerServerEstimate();
 </script>
 
 <style>

@@ -29,6 +29,12 @@ class CreateReservationAction
             $checkIn = $data['check_in_date'];
             $checkOut = $data['check_out_date'];
             $guestsCount = $data['guests_count'] ?? 1;
+            $adultsCount = $data['adults_count'] ?? null;
+            $childrenCount = $data['children_count'] ?? 0;
+            if ($adultsCount === null) {
+                $adultsCount = max($guestsCount - $childrenCount, 1);
+                $guestsCount = $adultsCount + $childrenCount;
+            }
             $isDayPass = !empty($data['is_day_pass']) || ($checkIn === $checkOut);
 
             // Verificar disponibilidad
@@ -36,9 +42,9 @@ class CreateReservationAction
                 throw new Exception('El alojamiento no está disponible para las fechas seleccionadas.');
             }
 
-            // Calcular precios y snapshot
-            $nightlySubtotal = $this->pricingService->calculateNightlySubtotal($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass);
-            $rateSnapshot = $this->pricingService->generateRateSnapshot($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass);
+            // Calcular precios y snapshot (con tarifa diferenciada niño)
+            $nightlySubtotal = $this->pricingService->calculateNightlySubtotal($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass, $adultsCount, $childrenCount);
+            $rateSnapshot = $this->pricingService->generateRateSnapshot($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass, $adultsCount, $childrenCount);
             
             // Si no se proveen valores de servicios, limpieza, depósitos, usamos 0 o defaults
             $servicesTotal = $data['services_total'] ?? 0.0;

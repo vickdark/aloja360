@@ -260,12 +260,25 @@
                         <span class="h6 fw-bold mb-0">${{ number_format($accommodation->base_price, 2) }} <small class="text-muted fw-normal">/ noche</small></span>
                     </div>
                     <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
-                        <span class="text-muted fw-medium">Tarifa por Persona</span>
+                        <span class="text-muted fw-medium">Tarifa por Adulto</span>
                         <span class="h6 fw-bold mb-0">
                             @if($accommodation->price_per_person > 0)
-                                ${{ number_format($accommodation->price_per_person, 2) }} <small class="text-muted fw-normal">/ persona / noche</small>
+                                ${{ number_format($accommodation->price_per_person, 2) }} <small class="text-muted fw-normal">/ adulto / noche</small>
                             @else
                                 <span class="text-muted fw-normal small">No configurada</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
+                        <span class="text-muted fw-medium">Tarifa por Niño</span>
+                        <span class="h6 fw-bold mb-0">
+                            @if(!is_null($accommodation->price_per_child))
+                                ${{ number_format($accommodation->price_per_child, 2) }} <small class="text-muted fw-normal">/ niño / noche</small>
+                                @if($accommodation->price_per_child == 0)
+                                    <span class="badge bg-success ms-1">Gratis</span>
+                                @endif
+                            @else
+                                <span class="text-muted fw-normal small">Igual que adulto</span>
                             @endif
                         </span>
                     </div>
@@ -286,7 +299,65 @@
                 </div>
             </div>
 
-            <!-- Configuración Pasadías -->
+            <!-- Temporadas y Ajustes de Precio -->
+            <div class="card border-0 shadow-soft rounded-4 mb-4">
+<div class="card-header bg-primary text-white border-0 p-4">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fa-solid fa-calendar-days me-2"></i> Temporadas y Ajustes de Precio
+                        </h5>
+                    </div>
+                <div class="card-body p-4">
+                    @if($seasonPreview->count() > 0)
+                        <p class="text-muted small mb-3">
+                            Los ajustes se aplican <strong>además</strong> del precio base del alojamiento, nunca lo reemplazan.
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Temporada</th>
+                                        <th>Tipo</th>
+                                        <th>Ajuste</th>
+                                        <th class="text-end">Base / noche</th>
+                                        <th class="text-end">Con ajuste / noche</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($seasonPreview as $row)
+                                        @php $p = $row['period']; @endphp
+                                        <tr>
+                                            <td class="fw-bold">
+                                                {{ $p->name }}
+                                                @if($p->start_date && $p->end_date)
+                                                    <div class="small text-muted fw-normal">
+                                                        {{ $p->start_date->format('d/m/Y') }} - {{ $p->end_date->format('d/m/Y') }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($p->isPercentage())
+                                                    <span class="badge bg-info bg-opacity-10 text-info">Porcentaje</span>
+                                                @else
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary">Monto fijo</span>
+                                                @endif
+                                            </td>
+                                            <td class="fw-bold text-success">{{ $p->adjustmentLabel() }}</td>
+                                            <td class="text-end">${{ number_format($row['base'], 2) }}</td>
+                                            <td class="text-end fw-bold fs-6">${{ number_format($row['adjusted'], 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-calendar-xmark fs-1 opacity-25 mb-2"></i>
+                            <p class="mb-0">No hay temporadas activas para este alojamiento.</p>
+                            <small>Administra las temporadas desde la sección <a href="{{ route('rate_periods.index') }}">Temporadas</a>.</small>
+                        </div>
+                    @endif
+                </div>
+            </div>
             <div class="card border-0 shadow-soft rounded-4 mb-4">
                 <div class="card-body p-4">
                     <h5 class="mb-3 fw-bold text-dark d-flex justify-content-between align-items-center">
@@ -320,13 +391,26 @@
                                     ${{ number_format($accommodation->day_pass_base_price ?? $accommodation->base_price, 2) }}
                                 </span>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted small fw-medium">Tarifa por Persona:</span>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small fw-medium">Tarifa por Adulto:</span>
                                 <span class="fw-bold text-dark">
                                     @if(($accommodation->day_pass_price_per_person ?? 0) > 0)
-                                        ${{ number_format($accommodation->day_pass_price_per_person, 2) }} <small class="text-muted fw-normal">/ persona</small>
+                                        ${{ number_format($accommodation->day_pass_price_per_person, 2) }} <small class="text-muted fw-normal">/ adulto</small>
                                     @else
                                         <span class="text-muted fw-normal small">No configurada</span>
+                                    @endif
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small fw-medium">Tarifa por Niño:</span>
+                                <span class="fw-bold text-dark">
+                                    @if(!is_null($accommodation->day_pass_price_per_child))
+                                        ${{ number_format($accommodation->day_pass_price_per_child, 2) }} <small class="text-muted fw-normal">/ niño</small>
+                                        @if($accommodation->day_pass_price_per_child == 0)
+                                            <span class="badge bg-success ms-1">Gratis</span>
+                                        @endif
+                                    @else
+                                        <span class="text-muted fw-normal small">Igual que adulto</span>
                                     @endif
                                 </span>
                             </div>

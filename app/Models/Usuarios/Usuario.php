@@ -3,14 +3,12 @@
 namespace App\Models\Usuarios;
 
 use App\Models\AuditLog;
-use App\Models\Business;
+use App\Models\Roles\Role;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Roles\Role;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Usuario extends Authenticatable
 {
@@ -41,7 +39,7 @@ class Usuario extends Authenticatable
      */
     public function hasRole(string|array $roles): bool
     {
-        if (!$this->role) {
+        if (! $this->role) {
             return false;
         }
 
@@ -54,7 +52,7 @@ class Usuario extends Authenticatable
 
     public function hasPermission(string $slug): bool
     {
-        if (!$this->role) {
+        if (! $this->role) {
             return false;
         }
 

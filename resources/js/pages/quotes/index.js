@@ -60,7 +60,7 @@ export function initQuotesIndex(config) {
                     </small>
                 `);
             }},
-            { id: 'total', name: "Total", width: "130px", formatter: (cell, row) => {
+            { id: 'total', name: "Total", width: "160px", formatter: (cell, row) => {
                 const q = row.cells[row.cells.length - 1]?.data || {};
                 const t = Number(q.total_amount || 0);
                 const d = Number(q.discount_total || 0);

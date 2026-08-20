@@ -322,17 +322,20 @@ per_accommodation  — Tarifa plana por alojamiento/noche (comportamiento tradic
                     Usa accommodation.base_price y rate_periods.price_per_night.
                     Aplica cargo extra por huéspedes adicionales solo cuando guests_count > base_capacity.
 
-per_person         — Tarifa variable por persona/noche.
-                    Usa accommodation.price_per_person y rate_periods.price_per_person.
-                    Precio_noche = precio_por_persona × guests_count (mínimo 1).
+per_person         — Tarifa variable por persona/noche con tarifa diferenciada adulto/niño.
+                    Usa accommodation.price_per_person (adulto), accommodation.price_per_child (niño) y rate_periods.price_per_person.
+                    Precio_noche = (adultos × precio_adulto_ajustado) + (niños × precio_niño_ajustado) (mínimo 1 adulto).
+                    Si price_per_child es NULL se cobra igual que adulto; 0 = niño gratis. per_accommodation ignora el desglose.
 ```
 
 Notas:
-- `price_per_person` es `decimal(14,2)` y vive en `accommodations`.
+- `price_per_person` (adulto) y `price_per_child` (niño) son `decimal(14,2)` y viven en `accommodations`. `price_per_child` nullable: NULL = igual que adulto, 0 = gratis.
+- Para pasadía: `day_pass_price_per_person` (adulto) y `day_pass_price_per_child` (niño) con misma semántica.
+- Los ajustes de temporada (`RatePeriod` ajuste amount/percentage) se aplican por igual a ambas tarifas (adulto y niño): `tarifa_ajustada = tarifa_base × factor + add`.
 - El `PricingType` se almacena como **snapshot histórico** también en `reservations.pricing_type` y `quotes.pricing_type`.
 - Una reserva/cotización puede sobreescribir el `pricing_type` por defecto del alojamiento (caso: el cliente no lleva toda la capacidad).
 - La entidad encargada de aplicar la lógica: `App\Services\PricingService`.
-- El `rate_snapshot` de Quote/Reservation debe persistir `pricing_type`, `base_price`, `price_per_person` y `guests_count` para trazabilidad histórica.
+- El `rate_snapshot` de Quote/Reservation debe persistir `pricing_type`, `base_price`, `price_per_person`, `price_per_child`, `adults_count`, `children_count` y `guests_count` para trazabilidad histórica.
 
 ## Modalidad de Pasadías (Day Pass)
 
@@ -343,7 +346,7 @@ Configuración por alojamiento:
 - `day_pass_max_guests`: Aforo máximo permitido para pasadías (puede ser diferente a la capacidad nocturna `max_guests`).
 - `day_pass_check_in_time` y `day_pass_check_out_time`: Horario operativo del pasadía (por defecto 08:00 a 17:00).
 - `day_pass_pricing_type`: Esquema de cobro (`per_accommodation` o `per_person`).
-- `day_pass_base_price` y `day_pass_price_per_person`: Tarifas correspondientes (`decimal(14,2)`).
+- `day_pass_base_price` y `day_pass_price_per_person` / `day_pass_price_per_child`: Tarifas correspondientes (`decimal(14,2)`). `day_pass_price_per_child` nullable con misma semántica que `price_per_child`.
 
 En la reserva/cotización:
 - `is_day_pass`: Boolean que identifica la reserva/cotización como pasadía.
@@ -558,6 +561,23 @@ total_amount
 ```
 
 El cálculo debe ejecutarse noche por noche si las tarifas pueden cambiar dentro de una misma reserva.
+
+## Regla de ajuste por temporada (RatePeriod)
+
+Un `RatePeriod` (vista "Temporadas y Tarifas") representa una temporada o regla tarifaria y actúa como un **adicional** sobre el precio base del alojamiento (`base_price` o `price_per_person`).
+
+Reglas obligatorias:
+
+- **Nunca reemplaza** el precio base del alojamiento.
+- Cada temporada define `adjustment_type`:
+  - `amount` → suma un monto fijo por noche (ej. +50.000 → 100.000 + 50.000 = 150.000).
+  - `percentage` → aplica un porcentaje (ej. +30% → 100.000 + 30% = 130.000).
+- Las temporadas que cubren una misma noche **se apilan**: `precio = base × ∏(1 + pct/100) + Σ(montos)`.
+- El ajuste aplica también al cobro por persona (`per_person`) y a la modalidad de pasadía (sobre `day_pass_base_price` / `day_pass_price_per_person`).
+- `is_weekend` restringe la temporada a sábados/domingos dentro del rango.
+- `is_holiday` restringe la temporada a días festivos. Los festivos del país configurado se consultan en línea por año al momento del cálculo (`App\Services\HolidayService`, API Nager.Date cacheada por año, con respaldo offline en `config/holidays.php`). El año a consultar es el de cada noche del rango (soporta estadías que cruzan de año).
+- El `rate_snapshot` de Quote/Reservation debe persistir por cada noche los ajustes aplicados (`adjustments[]`) para trazabilidad histórica.
+- La única fuente de cálculo de estos ajustes es `App\Services\PricingService` (métodos `applyAdjustment` y cálculo noche por noche).
 
 ---
 

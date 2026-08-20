@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PricingType;
+use App\Http\Requests\StoreAccommodationRequest;
+use App\Http\Requests\UpdateAccommodationRequest;
 use App\Models\Accommodation;
 use App\Models\AccommodationImage;
 use App\Models\Amenity;
 use App\Services\AvailabilityService;
-use App\Http\Requests\StoreAccommodationRequest;
-use App\Http\Requests\UpdateAccommodationRequest;
+use App\Services\PricingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +33,7 @@ class AccommodationController extends Controller
         if (! $user->hasPermission('accommodations.index')) {
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => 'No autorizado.'
+                    'message' => 'No autorizado.',
                 ], 403);
             }
 
@@ -47,8 +49,8 @@ class AccommodationController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -117,7 +119,7 @@ class AccommodationController extends Controller
 
             foreach ($request->input('amenities', []) as $amenityId) {
                 $syncData[$amenityId] = [
-                    'quantity' => 1
+                    'quantity' => 1,
                 ];
             }
 
@@ -134,23 +136,37 @@ class AccommodationController extends Controller
     /**
      * Mostrar alojamiento.
      */
-    public function show(Request $request, Accommodation $accommodation)
+    public function show(Request $request, Accommodation $accommodation, PricingService $pricingService)
     {
         $this->authorize('view', $accommodation);
 
         $accommodation->load([
             'amenities',
-            'ratePeriods',
+            'ratePeriods' => fn ($q) => $q->where('status', 'active')->orderBy('priority', 'desc'),
             'blockedPeriods',
             'images' => fn ($q) => $q->orderBy('sort_order'),
             'inventoryItems',
         ]);
 
+        $baseNightly = $accommodation->pricing_type === PricingType::PerPerson
+            ? (float) ($accommodation->price_per_person ?: $accommodation->base_price)
+            : (float) $accommodation->base_price;
+
+        $seasonPreview = $accommodation->ratePeriods->map(function ($period) use ($pricingService, $baseNightly) {
+            return [
+                'period' => $period,
+                'base' => $baseNightly,
+                'adjusted' => $pricingService->applyAdjustment($baseNightly, $period),
+            ];
+        })->values();
+
         if ($request->wantsJson()) {
+            $accommodation->setAttribute('season_preview', $seasonPreview);
+
             return response()->json($accommodation);
         }
 
-        return view('accommodations.show', compact('accommodation'));
+        return view('accommodations.show', compact('accommodation', 'seasonPreview'));
     }
 
     /**
@@ -203,7 +219,7 @@ class AccommodationController extends Controller
                     ?->pivot;
 
                 $syncData[$amenityId] = [
-                    'quantity' => $pivot?->quantity ?? 1
+                    'quantity' => $pivot?->quantity ?? 1,
                 ];
             }
 
@@ -293,7 +309,7 @@ class AccommodationController extends Controller
 
         if (! $user->hasPermission('accommodations.index')) {
             return response()->json([
-                'message' => 'No autorizado.'
+                'message' => 'No autorizado.',
             ], 403);
         }
 
@@ -323,7 +339,7 @@ class AccommodationController extends Controller
         $maxNew = self::MAX_IMAGES - $existingCount;
 
         foreach (array_slice($files, 0, $maxNew) as $index => $file) {
-            $path = $file->store('accommodations/' . $accommodation->id, 'public');
+            $path = $file->store('accommodations/'.$accommodation->id, 'public');
 
             $accommodation->images()->create([
                 'path' => $path,

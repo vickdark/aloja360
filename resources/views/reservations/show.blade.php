@@ -426,6 +426,7 @@
                     
                     <!-- Desglose Financiero -->
                     <h5 class="fw-bold mt-2 mb-3">Resumen de Factura</h5>
+                    @include('partials.rate-breakdown', ['snapshot' => $reservation->rate_snapshot])
                     <div class="d-flex justify-content-between mb-2 small lh-lg">
                         <span class="text-muted">{{ $reservation->is_day_pass ? 'Tarifa Pasadía' : 'Subtotal Alojamiento (' . $reservation->nights_count . ' noches)' }}</span>
                         <span class="fw-semibold">${{ number_format($reservation->nightly_subtotal, 2) }}</span>

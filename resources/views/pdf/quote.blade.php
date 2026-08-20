@@ -343,6 +343,76 @@
             </tr>
         </thead>
         <tbody>
+            @php
+                $rateSnapshot = is_array($quote->rate_snapshot) ? $quote->rate_snapshot : [];
+                $snapshotNights = $rateSnapshot['nights'] ?? [];
+                $hasNightBreakdown = is_array($snapshotNights) && count($snapshotNights) > 0;
+            @endphp
+
+            @if($quote->is_day_pass && !empty($rateSnapshot) && isset($rateSnapshot['day_pass_date']))
+                @php
+                    $dpTotal = (float) ($rateSnapshot['applied_price'] ?? $quote->nightly_subtotal);
+                    $dpUnit = $quote->pricing_type?->value === 'per_person'
+                        ? $dpTotal / max(1, $quote->guests_count)
+                        : $dpTotal;
+                    $dpLabels = collect($rateSnapshot['adjustments'] ?? [])
+                        ->map(fn ($a) => $a['label'] ?? $a['name'] ?? '')
+                        ->filter()
+                        ->implode(' · ');
+                @endphp
+                <tr>
+                    <td>
+                        <strong>Pasadía en {{ $quote->accommodation?->name }}</strong>
+                        <br>
+                        <small style="color: #64748b;">{{ $quote->check_in_date?->format('d/m/Y') }} · {{ $quote->pricing_type?->label() }}</small>
+                        @if($dpLabels)
+                            <br><small style="color: #92400e;">Modificadores: {{ $dpLabels }}</small>
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        @if($quote->pricing_type?->value === 'per_person')
+                            {{ $quote->guests_count }} pax
+                        @else
+                            1 día
+                        @endif
+                    </td>
+                    <td class="text-end">${{ number_format($dpUnit, 2) }}</td>
+                    <td class="text-end fw-bold">${{ number_format($quote->nightly_subtotal, 2) }}</td>
+                </tr>
+            @elseif($hasNightBreakdown)
+                @foreach($snapshotNights as $nightDate => $night)
+                    @php
+                        $d = \Illuminate\Support\Carbon::parse($nightDate);
+                        $nightTotal = (float) ($night['applied_price'] ?? 0);
+                        $nightUnit = $quote->pricing_type?->value === 'per_person'
+                            ? $nightTotal / max(1, $quote->guests_count)
+                            : $nightTotal;
+                        $nightLabels = collect($night['adjustments'] ?? [])
+                            ->map(fn ($a) => $a['label'] ?? $a['name'] ?? '')
+                            ->filter()
+                            ->implode(' · ');
+                    @endphp
+                    <tr>
+                        <td>
+                            <strong>Noche del {{ $d->format('d/m/Y') }}</strong>
+                            <br>
+                            <small style="color: #64748b;">{{ $quote->accommodation?->name }} · {{ $quote->pricing_type?->label() }}</small>
+                            @if($nightLabels)
+                                <br><small style="color: #92400e;">Modificadores: {{ $nightLabels }}</small>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if($quote->pricing_type?->value === 'per_person')
+                                {{ $quote->guests_count }} pax
+                            @else
+                                1 noche
+                            @endif
+                        </td>
+                        <td class="text-end">${{ number_format($nightUnit, 2) }}</td>
+                        <td class="text-end fw-bold">${{ number_format($nightTotal, 2) }}</td>
+                    </tr>
+                @endforeach
+            @else
             <tr>
                 <td>
                     <strong>
@@ -385,6 +455,7 @@
                     ${{ number_format($quote->nightly_subtotal, 2) }}
                 </td>
             </tr>
+            @endif
             @if($quote->cleaning_fee > 0)
             <tr>
                 <td>Tarifa de Limpieza / Aseo</td>

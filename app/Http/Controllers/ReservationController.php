@@ -89,6 +89,59 @@ class ReservationController extends Controller
         ));
     }
 
+    /**
+     * Genera un estimado de tarifas con el desglose real por noche (temporadas/modificadores),
+     * usando el mismo PricingService que salva la reserva. No persiste nada.
+     */
+    public function estimate(Request $request, PricingService $pricing): JsonResponse
+    {
+        $this->authorize('create', Reservation::class);
+
+        $data = $request->validate([
+            'accommodation_id' => 'required|exists:accommodations,id',
+            'check_in_date' => 'required|date',
+            'check_out_date' => 'required|date|after_or_equal:check_in_date',
+            'pricing_type' => 'nullable|string',
+            'guests_count' => 'nullable|integer|min:1',
+            'adults_count' => 'nullable|integer|min:1',
+            'children_count' => 'nullable|integer|min:0',
+            'is_day_pass' => 'nullable|boolean',
+        ]);
+
+        $accommodation = Accommodation::findOrFail($data['accommodation_id']);
+        $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
+        $adults = $data['adults_count'] ?? null;
+        $children = $data['children_count'] ?? null;
+        $guests = $data['guests_count'] ?? (($adults ?? 1) + ($children ?? 0));
+        if ($adults === null && $children === null) {
+            $adults = $guests;
+            $children = 0;
+        } elseif ($adults === null) {
+            $adults = max($guests - ($children ?? 0), 1);
+        } elseif ($children === null) {
+            $children = max($guests - $adults, 0);
+        }
+
+        $prices = $pricing->calculateStayTotal(
+            $accommodation,
+            $data['check_in_date'],
+            $data['check_out_date'],
+            $guests,
+            $data['pricing_type'] ?? null,
+            $isDayPass,
+            $adults,
+            $children
+        );
+
+        return response()->json([
+            'subtotal' => $prices['subtotal'],
+            'nights' => $prices['nights'],
+            'is_day_pass' => $isDayPass,
+            'pricing_type' => $prices['pricing_type'],
+            'snapshot' => $prices['snapshot'],
+        ]);
+    }
+
     public function store(StoreReservationRequest $request, CreateReservationAction $action, PricingService $pricing): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         try {
@@ -101,14 +154,25 @@ class ReservationController extends Controller
             // Si no se proveen valores financieros manualmente, calcularlos automaticamente
             if (!isset($data['nightly_subtotal']) || !isset($data['total_amount'])) {
                 $accommodation = Accommodation::find($data['accommodation_id']);
-                $guests = $data['guests_count'] ?? ($data['adults_count'] ?? 2) + ($data['children_count'] ?? 0);
+                $adults = $data['adults_count'] ?? null;
+                $children = $data['children_count'] ?? 0;
+                $guests = $data['guests_count'] ?? (($adults ?? 2) + ($children ?? 0));
+                if (!isset($data['guests_count'])) {
+                    $data['guests_count'] = $guests;
+                }
+                // Normalizar para pricing: si no hay desglose, tratar todo como adultos (compat)
+                if ($adults === null) {
+                    $adults = max($guests - $children, 1);
+                }
                 $prices = $pricing->calculateStayTotal(
                     $accommodation,
                     $data['check_in_date'],
                     $data['check_out_date'],
                     $guests,
                     $data['pricing_type'] ?? null,
-                    $isDayPass
+                    $isDayPass,
+                    $adults,
+                    $children
                 );
 
                 $data['pricing_type'] = $prices['pricing_type'];
@@ -189,23 +253,34 @@ class ReservationController extends Controller
             $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
             $data['is_day_pass'] = $isDayPass;
 
-            // Si las fechas o alojamiento cambiaron, recalcular precios
+            // Si las fechas, alojamiento o desglose adultos/niños cambiaron, recalcular precios
+            $adults = $data['adults_count'] ?? null;
+            $children = $data['children_count'] ?? 0;
+            $guests = $data['guests_count'] ?? (($adults ?? $reservation->adults_count) + ($children ?? $reservation->children_count));
+            if (!isset($data['guests_count'])) {
+                $data['guests_count'] = $guests;
+            }
+            if ($adults === null) {
+                $adults = max($guests - $children, 1);
+            }
             $datesChanged = $reservation->check_in_date->format('Y-m-d') !== $request->input('check_in_date')
                 || $reservation->check_out_date->format('Y-m-d') !== $request->input('check_out_date')
                 || $reservation->accommodation_id !== $request->input('accommodation_id')
                 || ((bool) $reservation->is_day_pass !== $isDayPass)
                 || ($request->filled('pricing_type') && ((string) $reservation->pricing_type?->value !== (string) $request->input('pricing_type')));
+            $guestBreakdownChanged = ($reservation->adults_count !== $adults) || ($reservation->children_count !== $children);
 
-            if ($datesChanged) {
+            if ($datesChanged || $guestBreakdownChanged) {
                 $accommodation = Accommodation::find($data['accommodation_id']);
-                $guests = $data['guests_count'] ?? ($data['adults_count'] ?? $reservation->guests_count);
                 $prices = $pricing->calculateStayTotal(
                     $accommodation,
                     $data['check_in_date'],
                     $data['check_out_date'],
                     $guests,
                     $data['pricing_type'] ?? null,
-                    $isDayPass
+                    $isDayPass,
+                    $adults,
+                    $children
                 );
 
                 $data['pricing_type'] = $prices['pricing_type'];

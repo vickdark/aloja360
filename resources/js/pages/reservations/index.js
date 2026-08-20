@@ -27,7 +27,7 @@ export function initReservationsIndex(config) {
             }},
             { id: 'guest', name: "Huésped Principal", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
-                const g = r.primaryGuest;
+                const g = r.primary_guest || r.primaryGuest || r.guest;
                 if (!g) return DataGrid.html('<span class="text-danger">Sin Huésped</span>');
                 const initials = (g.first_name || '').substr(0,1) + (g.last_name || '').substr(0,1);
                 return DataGrid.html(`

@@ -258,6 +258,7 @@
 
                     <!-- Desglose -->
                     <h5 class="fw-bold mt-3 mb-3">Desglose Financiero</h5>
+                    @include('partials.rate-breakdown', ['snapshot' => $quote->rate_snapshot])
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">{{ $quote->is_day_pass ? 'Tarifa Pasadía' : 'Subtotal Noches' }}</span>
                         <span class="fw-semibold">${{ number_format($quote->nightly_subtotal, 2) }}</span>

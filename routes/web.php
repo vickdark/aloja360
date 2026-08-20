@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('businesses', BusinessController::class);
 
     // Reservas
+    Route::post('reservations/estimate', [ReservationController::class, 'estimate'])->name('reservations.estimate');
     Route::get('reservations/{reservation}/pdf', [ReservationController::class, 'pdf'])->name('reservations.pdf');
     Route::post('reservations/{reservation}/send-email', [ReservationController::class, 'sendEmail'])->name('reservations.sendEmail');
     Route::post('reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
@@ -86,6 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('expense_categories', \App\Http\Controllers\ExpenseCategoryController::class);
 
     // Cotizaciones
+    Route::post('quotes/estimate', [\App\Http\Controllers\QuoteController::class, 'estimate'])->name('quotes.estimate');
     Route::get('quotes/{quote}/pdf', [\App\Http\Controllers\QuoteController::class, 'pdf'])->name('quotes.pdf');
     Route::post('quotes/{quote}/send-email', [\App\Http\Controllers\QuoteController::class, 'sendEmail'])->name('quotes.sendEmail');
     Route::post('quotes/{quote}/convert', [\App\Http\Controllers\QuoteController::class, 'convertToReservation'])->name('quotes.convert');

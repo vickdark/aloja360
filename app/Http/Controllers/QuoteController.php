@@ -54,6 +54,59 @@ class QuoteController extends Controller
         return view('quotes.index', compact('quotes', 'statusCounts'));
     }
 
+    /**
+     * Genera un estimado de tarifas con el desglose real por noche (temporadas/modificadores),
+     * usando el mismo PricingService que salva la cotización. No persiste nada.
+     */
+    public function estimate(Request $request, PricingService $pricingService)
+    {
+        $this->authorize('create', Quote::class);
+
+        $data = $request->validate([
+            'accommodation_id' => 'required|exists:accommodations,id',
+            'check_in_date' => 'required|date',
+            'check_out_date' => 'required|date|after_or_equal:check_in_date',
+            'pricing_type' => 'nullable|string',
+            'guests_count' => 'nullable|integer|min:1',
+            'adults_count' => 'nullable|integer|min:1',
+            'children_count' => 'nullable|integer|min:0',
+            'is_day_pass' => 'nullable|boolean',
+        ]);
+
+        $accommodation = Accommodation::findOrFail($data['accommodation_id']);
+        $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
+        $adults = $data['adults_count'] ?? null;
+        $children = $data['children_count'] ?? null;
+        $guests = $data['guests_count'] ?? (($adults ?? 1) + ($children ?? 0));
+        if ($adults === null && $children === null) {
+            $adults = $guests;
+            $children = 0;
+        } elseif ($adults === null) {
+            $adults = max($guests - ($children ?? 0), 1);
+        } elseif ($children === null) {
+            $children = max($guests - $adults, 0);
+        }
+
+        $prices = $pricingService->calculateStayTotal(
+            $accommodation,
+            $data['check_in_date'],
+            $data['check_out_date'],
+            $guests,
+            $data['pricing_type'] ?? null,
+            $isDayPass,
+            $adults,
+            $children
+        );
+
+        return response()->json([
+            'subtotal' => $prices['subtotal'],
+            'nights' => $prices['nights'],
+            'is_day_pass' => $isDayPass,
+            'pricing_type' => $prices['pricing_type'],
+            'snapshot' => $prices['snapshot'],
+        ]);
+    }
+
     public function create()
     {
         $this->authorize('create', Quote::class);
@@ -87,15 +140,19 @@ class QuoteController extends Controller
             $data['is_day_pass'] = $isDayPass;
             $data['nights_count'] = $isDayPass ? 0 : $checkIn->diffInDays($checkOut);
 
-            // Calcular Precios Base
+            // Calcular Precios Base (adulto/niño diferenciados)
             $accommodation = Accommodation::findOrFail($data['accommodation_id']);
+            $adults = $data['adults_count'] ?? 1;
+            $children = $data['children_count'] ?? 0;
             $prices = $pricingService->calculateStayTotal(
                 $accommodation,
                 $checkIn,
                 $checkOut,
                 $data['guests_count'],
                 $data['pricing_type'] ?? null,
-                $isDayPass
+                $isDayPass,
+                $adults,
+                $children
             );
 
             $data['nightly_subtotal'] = $prices['subtotal'];
@@ -165,15 +222,19 @@ class QuoteController extends Controller
             $checkOut = now()->parse($data['check_out_date']);
             $data['nights_count'] = $isDayPass ? 0 : $checkIn->diffInDays($checkOut);
 
-            // Recalcular Precios
+            // Recalcular Precios (adulto/niño diferenciados)
             $accommodation = Accommodation::findOrFail($data['accommodation_id']);
+            $adults = $data['adults_count'] ?? 1;
+            $children = $data['children_count'] ?? 0;
             $prices = $pricingService->calculateStayTotal(
                 $accommodation,
                 $checkIn,
                 $checkOut,
                 $data['guests_count'],
                 $data['pricing_type'] ?? null,
-                $isDayPass
+                $isDayPass,
+                $adults,
+                $children
             );
 
             $data['nightly_subtotal'] = $prices['subtotal'];

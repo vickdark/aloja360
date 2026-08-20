@@ -34,16 +34,37 @@ export function initRatePeriodsIndex(config) {
                     </div>
                 `);
             }},
-            { id: 'price', name: "Precio Noche", width: "130px", formatter: (cell, row) => {
+            { id: 'price', name: "Ajuste", width: "180px", formatter: (cell, row) => {
                 const p = row.cells[row.cells.length - 1]?.data || {};
-                const v = Number(p.price_per_night || 0);
-                return DataGrid.html(`<span class="fw-bold text-success fs-6">$${v.toLocaleString('es-CO')}</span>`);
+                const isPct = p.adjustment_type === 'percentage';
+                const v = Number(p.adjustment_value || 0);
+                const label = v ? (isPct ? `+${v}%` : `+$${v.toLocaleString('es-CO')}`) : '<span class="text-muted">—</span>';
+                const cls = isPct ? 'text-info' : 'text-success';
+                let html = `<div class="fw-bold ${cls}">${label}</div>`;
+                // Niño y Alojamiento si tienen ajuste propio
+                if (p.child_adjustment_value != null && p.child_adjustment_value !== '') {
+                    const cIsPct = (p.child_adjustment_type || p.adjustment_type) === 'percentage';
+                    const cv = Number(p.child_adjustment_value);
+                    const cl = cIsPct ? `+${cv}%` : `+$${cv.toLocaleString('es-CO')}`;
+                    html += `<div class="small text-success"><i class="fa-solid fa-child me-1"></i>Niño: ${cl}</div>`;
+                }
+                if (p.accommodation_adjustment_value != null && p.accommodation_adjustment_value !== '') {
+                    const aIsPct = (p.accommodation_adjustment_type || p.adjustment_type) === 'percentage';
+                    const av = Number(p.accommodation_adjustment_value);
+                    const al = aIsPct ? `+${av}%` : `+$${av.toLocaleString('es-CO')}`;
+                    html += `<div class="small text-primary"><i class="fa-solid fa-house me-1"></i>Aloj: ${al}</div>`;
+                }
+                return DataGrid.html(html);
             }},
             { id: 'extra', name: "Extra/Huésped", formatter: (cell, row) => {
                 const p = row.cells[row.cells.length - 1]?.data || {};
                 const v = Number(p.extra_guest_price || 0);
-                if (v > 0) return DataGrid.html(`<span class="text-info fw-bold">+$${v.toLocaleString('es-CO')}</span>`);
-                return DataGrid.html(`<span class="text-muted small">Sin costo</span>`);
+                const vc = Number(p.extra_child_price || 0);
+                let html = '';
+                if (v > 0) html += `<div class="small"><i class="fa-solid fa-user me-1 text-muted"></i>Adulto: <span class="text-info fw-bold">+$${v.toLocaleString('es-CO')}</span></div>`;
+                if (vc > 0) html += `<div class="small"><i class="fa-solid fa-child me-1 text-muted"></i>Niño: <span class="text-success fw-bold">+$${vc.toLocaleString('es-CO')}</span></div>`;
+                if (!html) return DataGrid.html(`<span class="text-muted small">Sin costo</span>`);
+                return DataGrid.html(html);
             }},
             { id: 'priority', name: "Prioridad", formatter: (cell, row) => {
                 const p = row.cells[row.cells.length - 1]?.data || {};

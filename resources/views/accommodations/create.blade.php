@@ -229,13 +229,24 @@
                         </div>
 
                         <div class="mb-3" id="price_per_person_group">
-                            <label class="form-label small fw-bold text-white-50">Precio por Persona (por noche)</label>
+                            <label class="form-label small fw-bold text-white-50">Precio por Adulto (por noche) — Per Persona</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
                                 <input type="number" step="100" min="0" name="price_per_person" id="price_per_person" value="{{ old('price_per_person', 0) }}" class="form-control bg-white bg-opacity-10 border-0 text-white">
                             </div>
                             <div class="form-text text-white-50 small mt-1">
-                                Tarifa a cobrar por persona si se elige esta modalidad.
+                                Tarifa base por adulto/noche. Se multiplica × adultos.
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="price_per_child_group">
+                            <label class="form-label small fw-bold text-white-50">Precio por Niño (por noche) — Per Persona</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
+                                <input type="number" step="100" min="0" name="price_per_child" id="price_per_child" value="{{ old('price_per_child', 0) }}" class="form-control bg-white bg-opacity-10 border-0 text-white" placeholder="Vacío = igual que adulto">
+                            </div>
+                            <div class="form-text text-white-50 small mt-1">
+                                Tarifa diferenciada niños. Vacío = cobra igual que adulto. 0 = gratis.
                             </div>
                         </div>
 
@@ -308,11 +319,19 @@
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small fw-bold text-muted">Precio Pasadía por Persona</label>
+                                <label class="form-label small fw-bold text-muted">Precio Pasadía por Adulto (Per Persona)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="number" step="100" min="0" name="day_pass_price_per_person" id="day_pass_price_per_person" value="{{ old('day_pass_price_per_person', 0) }}" class="form-control">
                                 </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Precio Pasadía por Niño (Per Persona)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="100" min="0" name="day_pass_price_per_child" id="day_pass_price_per_child" value="{{ old('day_pass_price_per_child', 0) }}" class="form-control" placeholder="Vacío = igual que adulto">
+                                </div>
+                                <div class="form-text small mt-1">Vacío = igual que adulto. 0 = gratis.</div>
                             </div>
                         </div>
                     </div>

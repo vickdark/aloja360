@@ -1,6 +1,6 @@
 # Aloja360 - Database Schema
 
-Versión del esquema: 1.1 | Última actualización: 2026-08-17
+Versión del esquema: 1.2 | Última actualización: 2026-08-21 — Tarifa diferenciada niños
 
 ## Diagrama ER (Mermaid)
 
@@ -140,14 +140,16 @@ erDiagram
         int bathrooms
         decimal base_price
         string pricing_type "per_accommodation | per_person (Enum PricingType)"
-        decimal price_per_person "precio base noche por persona"
+        decimal price_per_person "precio base noche por adulto (per_person)"
+        decimal price_per_child "precio base noche por niño (per_person) nullable: NULL=igual adulto, 0=gratis"
         boolean allows_day_pass "habilita reservas de pasadía"
         int day_pass_max_guests "aforo máximo para pasadías"
         time day_pass_check_in_time "hora inicio pasadía (default 08:00)"
         time day_pass_check_out_time "hora fin pasadía (default 17:00)"
         string day_pass_pricing_type "per_accommodation | per_person"
         decimal day_pass_base_price "tarifa plana por pasadía"
-        decimal day_pass_price_per_person "tarifa por persona pasadía"
+        decimal day_pass_price_per_person "tarifa por adulto pasadía"
+        decimal day_pass_price_per_child "tarifa por niño pasadía nullable: NULL=igual adulto, 0=gratis"
         decimal cleaning_fee
         decimal security_deposit
         string check_in_time
@@ -180,8 +182,17 @@ erDiagram
         date start_date
         date end_date
         json days_of_week
-        decimal price_per_night
+        boolean is_weekend
+        boolean is_holiday
+        decimal price_per_night "DEPRECADO: ya no se usa para calcular precios (ver adjustment_value)"
+        string adjustment_type "amount | percentage — cómo se aplica el ajuste sobre el precio base"
+        decimal adjustment_value "adicional: monto fijo o porcentaje (+%) que se suma/aplica sobre el base"
+        decimal extra_guest_price
+        integer min_nights
+        integer max_nights
         string status
+        integer priority
+        text notes
     }
 
     BLOCKED_PERIOD {
@@ -237,6 +248,8 @@ erDiagram
         date check_out_date
         int nights_count
         int guests_count
+        int adults_count
+        int children_count
         decimal nightly_subtotal
         decimal services_total
         decimal total_amount
@@ -261,6 +274,8 @@ erDiagram
         datetime actual_check_in_at
         datetime actual_check_out_at
         int guests_count
+        int adults_count
+        int children_count
         int nights_count
         decimal nightly_subtotal
         decimal services_total
@@ -542,7 +557,18 @@ reservation.total_amount
 ### Precios históricos
 - `reservation_services` almacena snapshot de `name`, `unit_price`, `total` al momento
 - `reservations.rate_snapshot` JSON almacena snapshot de tarifas aplicadas
+- `rate_snapshot.nights[].adjustments[]` registra cada temporada aplicada (id, nombre, tipo, valor) para desglose auditable
 - Nunca se lee el precio actual de `services.price` para reportar reservas pasadas
+
+### Temporadas (RatePeriod) - regla de ajuste
+- Un `RatePeriod` representa una temporada/regla tarifaria y actúa como un **ADICIONAL** sobre el precio base del alojamiento (`accommodations.base_price` o `price_per_person` / `price_per_child`).
+- **Nunca reemplaza** el precio base.
+- `adjustment_type` = `amount` (suma fija) o `percentage` (porcentaje).
+- Fórmula por noche: `precio = base × ∏(1 + pct/100) + Σ(montos)`. Para `per_person` se aplica por igual a `price_per_person` (adulto) y `price_per_child` (niño): `total_noche = adultos×(adultBase×factor+add) + niños×(childBase×factor+add)`. En `per_accommodation` no afecta desglose edades.
+- Todas las temporadas activas que cubren una fecha se apilan (se suman); ya no existe prioridad de reemplazo.
+- Aplica igual al cobro por persona (`per_person` diferenciado adulto/niño) y a la modalidad de pasadía (sobre `day_pass_base_price` / `day_pass_price_per_person` / `day_pass_price_per_child`).
+- `is_weekend` restringe la temporada a sábados/domingos dentro del rango.
+- `is_holiday` restringe la temporada a días festivos del país configurado (`config/holidays.php`, `HolidayService`). Los festivos se consultan en línea por año (API Nager.Date), se cachean por año, y tienen respaldo offline con `holidays.manual_dates`.
 
 ## Migraciones (orden)
 ```
@@ -574,6 +600,9 @@ reservation.total_amount
 2026_08_15_000018  expense_categories + expenses
 2026_08_15_000019  create_outbound_messages
 2026_08_15_000020  create_audit_logs
+2026_08_20_000001  add_day_pass_fields_to_accommodations_reservations_quotes
+2026_08_20_000002  add_adjustment_fields_to_rate_periods
+2026_08_20_000003  add_child_pricing_to_accommodations (price_per_child, day_pass_price_per_child)
 ```
 
 ## PHP Enums (app/Enums)

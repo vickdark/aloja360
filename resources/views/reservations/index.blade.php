@@ -157,7 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
             edit: '{{ route('reservations.edit', ':id') }}',
             confirm: '{{ route('reservations.confirm', ':id') }}',
             checkIn: '{{ route('reservations.checkIn', ':id') }}',
-            checkOut: '{{ route('reservations.checkOut', ':id') }}'
+            checkOut: '{{ route('reservations.checkOut', ':id') }}',
+            destroy: '{{ route('reservations.destroy', ':id') }}',
+            paymentsCreate: '{{ route('payments.create') }}'
         },
         tokens: {
             csrf: '{{ csrf_token() }}'

@@ -92,6 +92,7 @@ export function initReservationsIndex(config) {
                 const confirmUrl = routes.confirm.replace(':id', id);
                 const checkInUrl = routes.checkIn.replace(':id', id);
                 const checkOutUrl = routes.checkOut.replace(':id', id);
+                const destroyUrl = routes.destroy.replace(':id', id);
                 const csrf = tokens.csrf;
                 const editable = st !== 'cancelled' && st !== 'checked_out' && st !== 'no_show';
                 let actions = `
@@ -99,7 +100,11 @@ export function initReservationsIndex(config) {
                 `;
                 if (editable) actions += `<a href="${editUrl}" class="btn btn-sm btn-outline-warning rounded-pill px-2" title="Editar"><i class="fa-solid fa-pen-to-square"></i></a>`;
                 if (st === 'pending') {
-                    actions += `<form class="d-inline" method="POST" action="${confirmUrl}"><input type="hidden" name="_token" value="${csrf}"><button type="submit" class="btn btn-sm btn-primary rounded-pill px-2" title="Confirmar"><i class="fa-solid fa-check"></i></button></form>`;
+                    const guestId = r.primary_guest_id || '';
+                    const total = r.total_amount || 0;
+                    const paymentUrl = `${routes.paymentsCreate}?reservation_id=${id}&guest_id=${guestId}&amount=${total}`;
+                    actions += `<a href="${paymentUrl}" class="btn btn-sm btn-primary rounded-pill px-2" title="Registrar Pago y Confirmar"><i class="fa-solid fa-dollar-sign"></i></a>`;
+                    actions += `<form class="d-inline" method="POST" action="${destroyUrl}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.')"><input type="hidden" name="_token" value="${csrf}"><input type="hidden" name="_method" value="DELETE"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>`;
                 }
                 if (st === 'confirmed') {
                     actions += `<form class="d-inline" method="POST" action="${checkInUrl}"><input type="hidden" name="_token" value="${csrf}"><button type="submit" class="btn btn-sm btn-success rounded-pill px-2" title="Check-In"><i class="fa-solid fa-door-open"></i></button></form>`;

@@ -2,18 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payment;
-use App\Models\Reservation;
-use App\Models\Guest;
+use App\Actions\ConfirmReservationAction;
+use App\Enums\ReservationStatus;
 use App\Http\Requests\StorePaymentRequest;
 use App\Http\Requests\UpdatePaymentRequest;
+use App\Models\Guest;
+use App\Models\Payment;
+use App\Models\Reservation;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index(\Illuminate\Http\Request $request)
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Payment::class);
 
@@ -41,15 +44,21 @@ class PaymentController extends Controller
         return view('payments.index');
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('create', Payment::class);
-        $reservations = Reservation::whereNotIn('status', ['cancelled'])->get();
-        $guests = Guest::all();
-        return view('payments.create', compact('reservations', 'guests'));
+        $reservations = Reservation::with('primaryGuest')->whereNotIn('status', ['cancelled'])->orderBy('id', 'desc')->get();
+        $guests = Guest::orderBy('first_name')->get();
+        
+        $selectedReservation = null;
+        if ($request->filled('reservation_id')) {
+            $selectedReservation = Reservation::with('primaryGuest')->find($request->get('reservation_id'));
+        }
+
+        return view('payments.create', compact('reservations', 'guests', 'selectedReservation'));
     }
 
-    public function store(StorePaymentRequest $request)
+    public function store(StorePaymentRequest $request, ConfirmReservationAction $confirmAction)
     {
         $this->authorize('create', Payment::class);
         
@@ -62,7 +71,30 @@ class PaymentController extends Controller
             $data['confirmed_by'] = auth()->id();
         }
 
-        Payment::create($data);
+        $payment = Payment::create($data);
+
+        // Si el pago se confirma y la reserva está pendiente, confirmar la reserva automáticamente
+        if ($payment->reservation_id && $data['status'] === 'confirmed') {
+            $reservation = Reservation::find($payment->reservation_id);
+            if ($reservation && $reservation->status === ReservationStatus::Pending) {
+                try {
+                    $confirmAction->execute(
+                        $reservation,
+                        auth()->id(),
+                        'Confirmación automática tras registro de pago ' . $payment->code
+                    );
+                } catch (\Exception $e) {
+                    // Si ya estaba confirmada u otro detalle, continuar
+                }
+            }
+        }
+
+        if ($request->filled('reservation_id')) {
+            return redirect()
+                ->route('reservations.show', $payment->reservation_id)
+                ->with('success', '¡Pago registrado exitosamente! La reserva y su saldo han sido actualizados.');
+        }
+
         return redirect()->route('payments.index')->with('success', 'Pago registrado correctamente.');
     }
 

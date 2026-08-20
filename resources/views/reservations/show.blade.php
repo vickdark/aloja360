@@ -57,17 +57,14 @@
                     </a>
                 @endif
                 
-                <a href="{{ route('payments.create', ['reservation_id' => $reservation->id]) }}" class="btn btn-outline-success rounded-pill px-4 shadow-sm d-none">
-                    <i class="fa-solid fa-plus me-2"></i> Pago
+                <a href="{{ route('payments.create', ['reservation_id' => $reservation->id, 'guest_id' => $reservation->primary_guest_id, 'amount' => $reservation->total_amount]) }}" class="btn btn-outline-success rounded-pill px-4 shadow-sm">
+                    <i class="fa-solid fa-dollar-sign me-2"></i> Registrar Pago
                 </a>
 
                 @if($status === 'pending')
-                    <form action="{{ route('reservations.confirm', $reservation->id) }}" method="POST" onsubmit="return confirm('¿Confirmar esta reserva y bloquear la disponibilidad?');">
-                        @csrf
-                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                            <i class="fa-solid fa-check me-2"></i> Confirmar Pago
-                        </button>
-                    </form>
+                    <a href="{{ route('payments.create', ['reservation_id' => $reservation->id, 'guest_id' => $reservation->primary_guest_id, 'amount' => $reservation->total_amount]) }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                        <i class="fa-solid fa-check me-2"></i> Confirmar con Pago
+                    </a>
                 @elseif($status === 'confirmed')
                     <form action="{{ route('reservations.checkIn', $reservation->id) }}" method="POST" onsubmit="return confirm('¿Realizar Check-In del huésped?');">
                         @csrf
@@ -88,6 +85,16 @@
                     <button class="btn btn-outline-danger rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#cancelModal">
                         <i class="fa-solid fa-ban me-2"></i> Cancelar
                     </button>
+                @endif
+
+                @if($status === 'pending')
+                    <form action="{{ route('reservations.destroy', $reservation) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-trash me-2"></i> Eliminar
+                        </button>
+                    </form>
                 @endif
 
                 <a href="{{ route('reservations.index') }}" class="btn btn-light rounded-pill px-4">
@@ -407,11 +414,11 @@
                             <span class="fw-bold small">SALDO PENDIENTE</span>
                             <span class="fs-5 fw-bold">${{ number_format($reservation->outstanding_balance, 0) }}</span>
                         </div>
-                        @if($reservation->outstanding_balance > 0 && $status === 'pending')
+                        @if($reservation->outstanding_balance > 0 && !in_array($status, ['cancelled', 'no_show']))
                             <div class="d-grid mt-3">
-                                <button class="btn btn-light text-primary fw-bold rounded-3 py-2" data-bs-toggle="tooltip" title="Ir a módulo de pagos (Pendiente)">
+                                <a href="{{ route('payments.create', ['reservation_id' => $reservation->id, 'guest_id' => $reservation->primary_guest_id, 'amount' => $reservation->outstanding_balance]) }}" class="btn btn-light text-primary fw-bold rounded-3 py-2">
                                     <i class="fa-solid fa-plus me-1"></i> Registrar Pago
-                                </button>
+                                </a>
                             </div>
                         @endif
                     </div>

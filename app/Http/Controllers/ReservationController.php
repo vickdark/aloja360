@@ -7,6 +7,7 @@ use App\Actions\CheckInReservationAction;
 use App\Actions\CheckOutReservationAction;
 use App\Actions\ConfirmReservationAction;
 use App\Actions\CreateReservationAction;
+use App\Actions\DeleteReservationAction;
 use App\Http\Requests\StoreReservationRequest;
 use App\Http\Requests\UpdateReservationRequest;
 use App\Models\Accommodation;
@@ -369,6 +370,29 @@ class ReservationController extends Controller
             
             return back()->with('success', '¡Reserva Cancelada! El alojamiento está disponible nuevamente.');
             
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function destroy(Reservation $reservation, Request $request, DeleteReservationAction $action): \Illuminate\Http\RedirectResponse|JsonResponse
+    {
+        $this->authorize('delete', $reservation);
+
+        try {
+            $action->execute($reservation);
+
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Reserva eliminada exitosamente']);
+            }
+
+            return redirect()
+                ->route('reservations.index')
+                ->with('success', '¡Reserva eliminada exitosamente!');
+
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);

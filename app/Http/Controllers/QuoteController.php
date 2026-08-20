@@ -281,10 +281,14 @@ class QuoteController extends Controller
 
             DB::commit();
             
-            // Flujo exitoso: Redirigir a la FICHA DE DETALLES de la nueva Reserva (Ahora funciona gracias a la Vista Show)
+            // Flujo exitoso: Redirigir a Registrar Pago para confirmar la reserva
             return redirect()
-                ->route('reservations.show', $reservation)
-                ->with('success', '¡Conversión Exitosa! La cotización <b>' . $quote->code . '</b> se ha transformado en la Reserva <b>#' . $reservation->code . '</b>. Puedes gestionar los pagos y confirmar la estancia aquí.');
+                ->route('payments.create', [
+                    'reservation_id' => $reservation->id,
+                    'guest_id' => $reservation->primary_guest_id,
+                    'amount' => $reservation->total_amount,
+                ])
+                ->with('success', '¡Cotización convertida en Reserva <b>#' . $reservation->code . '</b>! Registra el pago a continuación para confirmarla.');
 
         } catch (\Exception $e) {
             DB::rollBack();

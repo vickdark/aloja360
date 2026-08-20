@@ -183,4 +183,9 @@ class Reservation extends Model
     {
         return $this->status->blocksAvailability();
     }
+
+    public function canBeDeleted(): bool
+    {
+        return $this->status->canBeDeleted();
+    }
 }

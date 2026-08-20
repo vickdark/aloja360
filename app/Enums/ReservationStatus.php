@@ -31,4 +31,9 @@ enum ReservationStatus: string
             self::NoShow => 'No asistió',
         };
     }
+
+    public function canBeDeleted(): bool
+    {
+        return $this === self::Pending;
+    }
 }

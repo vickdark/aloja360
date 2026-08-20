@@ -13,6 +13,27 @@
 
     @include('partials.alerts')
 
+    @if(isset($selectedReservation) && $selectedReservation)
+        <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-info text-white p-3 rounded-3">
+                    <i class="fa-solid fa-file-invoice-dollar fs-3"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Pago para la Reserva #{{ $selectedReservation->code }}</h5>
+                    <p class="mb-0 small text-muted">
+                        Huésped: <b>{{ $selectedReservation->primaryGuest?->fullName() ?? 'Sin asignar' }}</b> · 
+                        Total: <b>${{ number_format($selectedReservation->total_amount, 0) }}</b> · 
+                        Estado Reserva: <span class="badge bg-secondary rounded-pill">{{ $selectedReservation->status->label() }}</span>
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('reservations.show', $selectedReservation) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="fa-solid fa-eye me-1"></i> Ver Ficha Reserva
+            </a>
+        </div>
+    @endif
+
     <div class="card shadow-sm border-0 rounded-3 mb-4">
         <div class="card-header bg-white py-3">
             <h6 class="m-0 font-weight-bold text-primary">Detalles del Pago</h6>
@@ -27,8 +48,15 @@
                         <select class="form-select" id="reservation_id" name="reservation_id" required>
                             <option value="">Seleccione una reserva...</option>
                             @foreach($reservations as $reservation)
-                                <option value="{{ $reservation->id }}" {{ old('reservation_id') == $reservation->id ? 'selected' : '' }}>
-                                    {{ $reservation->code }} - {{ $reservation->primaryGuest->fullName() ?? 'Sin huésped' }}
+                                @php
+                                    $isSelected = (old('reservation_id', request('reservation_id')) == $reservation->id);
+                                @endphp
+                                <option value="{{ $reservation->id }}" 
+                                    data-guest-id="{{ $reservation->primary_guest_id }}"
+                                    data-total="{{ $reservation->total_amount }}"
+                                    data-balance="{{ $reservation->outstanding_balance ?? $reservation->total_amount }}"
+                                    {{ $isSelected ? 'selected' : '' }}>
+                                    {{ $reservation->code }} - {{ $reservation->primaryGuest?->fullName() ?? 'Sin huésped' }} (${{ number_format($reservation->total_amount, 0) }})
                                 </option>
                             @endforeach
                         </select>
@@ -37,8 +65,11 @@
                         <label for="guest_id" class="form-label">Huésped (Pagador) <span class="text-danger">*</span></label>
                         <select class="form-select" id="guest_id" name="guest_id" required>
                             <option value="">Seleccione un huésped...</option>
+                            @php
+                                $defaultGuestId = old('guest_id', request('guest_id') ?? ($selectedReservation?->primary_guest_id));
+                            @endphp
                             @foreach($guests as $guest)
-                                <option value="{{ $guest->id }}" {{ old('guest_id') == $guest->id ? 'selected' : '' }}>
+                                <option value="{{ $guest->id }}" {{ $defaultGuestId == $guest->id ? 'selected' : '' }}>
                                     {{ $guest->fullName() }} ({{ $guest->document_number }})
                                 </option>
                             @endforeach
@@ -51,7 +82,10 @@
                         <label for="amount" class="form-label">Monto <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input type="number" step="0.01" min="0" class="form-control" id="amount" name="amount" value="{{ old('amount') }}" required>
+                            @php
+                                $defaultAmount = old('amount', request('amount') ?? ($selectedReservation?->total_amount));
+                            @endphp
+                            <input type="number" step="0.01" min="0" class="form-control" id="amount" name="amount" value="{{ $defaultAmount }}" required>
                         </div>
                     </div>
                     <div class="col-md-2">

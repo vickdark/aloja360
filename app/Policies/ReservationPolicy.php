@@ -44,6 +44,6 @@ class ReservationPolicy
      */
     public function delete(Usuario $usuario, Reservation $reservation): bool
     {
-        return true;
+        return $reservation->canBeDeleted();
     }
 }

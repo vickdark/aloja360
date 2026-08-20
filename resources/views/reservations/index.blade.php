@@ -16,6 +16,9 @@
                 <input type="text" name="search" class="form-control border-start-0 bg-light ps-0" placeholder="Buscar código, huésped, alojamiento..." value="{{ request('search') }}">
                 <button type="submit" class="btn btn-light border"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
+            <a href="{{ route('reservations.calendar') }}" class="btn btn-outline-dark rounded-pill px-4 shadow-sm">
+                <i class="fa-solid fa-calendar-days me-1 text-primary"></i> Ver Calendario
+            </a>
             <a href="{{ route('quotes.create') }}" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">
                 <i class="fa-solid fa-file-invoice-dollar me-1"></i> Desde Cotización
             </a>

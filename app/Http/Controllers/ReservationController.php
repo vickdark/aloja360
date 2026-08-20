@@ -90,6 +90,98 @@ class ReservationController extends Controller
     }
 
     /**
+     * Muestra la vista de calendario interactivo de reservas.
+     */
+    public function calendar(Request $request)
+    {
+        $this->authorize('viewAny', Reservation::class);
+        $accommodations = Accommodation::all();
+        return view('reservations.calendar', compact('accommodations'));
+    }
+
+    /**
+     * Retorna los datos de eventos para el calendario en formato JSON.
+     */
+    public function calendarData(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Reservation::class);
+
+        $query = Reservation::with(['accommodation', 'primaryGuest']);
+
+        if ($request->filled('accommodation_id')) {
+            $query->where('accommodation_id', $request->get('accommodation_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        if ($request->filled('start') && $request->filled('end')) {
+            $start = Carbon::parse($request->get('start'))->startOfDay();
+            $end = Carbon::parse($request->get('end'))->endOfDay();
+            $query->where(function($q) use ($start, $end) {
+                $q->where('check_in_date', '<=', $end)
+                  ->where('check_out_date', '>=', $start);
+            });
+        }
+
+        $reservations = $query->get();
+
+        $statusColors = [
+            'pending' => ['bg' => '#f59e0b', 'border' => '#d97706', 'text' => '#ffffff'],
+            'confirmed' => ['bg' => '#3b82f6', 'border' => '#2563eb', 'text' => '#ffffff'],
+            'checked_in' => ['bg' => '#10b981', 'border' => '#059669', 'text' => '#ffffff'],
+            'checked_out' => ['bg' => '#06b6d4', 'border' => '#0891b2', 'text' => '#ffffff'],
+            'cancelled' => ['bg' => '#ef4444', 'border' => '#dc2626', 'text' => '#ffffff'],
+            'no_show' => ['bg' => '#6b7280', 'border' => '#4b5563', 'text' => '#ffffff'],
+        ];
+
+        $events = $reservations->map(function ($r) use ($statusColors) {
+            $st = $r->status->value;
+            $colors = $statusColors[$st] ?? ['bg' => '#6b7280', 'border' => '#4b5563', 'text' => '#ffffff'];
+            $guestName = $r->primaryGuest ? "{$r->primaryGuest->first_name} {$r->primaryGuest->last_name}" : 'Sin Huésped';
+            $accName = $r->accommodation ? $r->accommodation->name : 'Alojamiento';
+
+            // Para pasadía (mismo día), end = check_in_date
+            // Para reservas con noches, check_out_date es el día de salida
+            return [
+                'id' => $r->id,
+                'title' => "#{$r->code} - {$accName} ({$guestName})",
+                'code' => $r->code,
+                'guest' => $guestName,
+                'guest_phone' => $r->primaryGuest?->phone ?? '',
+                'guest_email' => $r->primaryGuest?->email ?? '',
+                'accommodation' => $accName,
+                'start' => $r->check_in_date->format('Y-m-d'),
+                'end' => $r->is_day_pass ? $r->check_in_date->format('Y-m-d') : $r->check_out_date->format('Y-m-d'),
+                'check_in_formatted' => $r->check_in_date->format('d/m/Y'),
+                'check_out_formatted' => $r->check_out_date->format('d/m/Y'),
+                'nights_count' => $r->nights_count,
+                'guests_count' => $r->guests_count,
+                'adults_count' => $r->adults_count,
+                'children_count' => $r->children_count,
+                'is_day_pass' => (bool)$r->is_day_pass,
+                'status' => $st,
+                'status_label' => $r->status->label(),
+                'total_amount' => number_format((float)$r->total_amount, 2),
+                'outstanding_balance' => number_format((float)$r->outstanding_balance, 2),
+                'source' => $r->source,
+                'notes' => $r->notes,
+                'show_url' => route('reservations.show', $r->id),
+                'edit_url' => route('reservations.edit', $r->id),
+                'backgroundColor' => $colors['bg'],
+                'borderColor' => $colors['border'],
+                'textColor' => $colors['text'],
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $events,
+        ]);
+    }
+
+    /**
      * Genera un estimado de tarifas con el desglose real por noche (temporadas/modificadores),
      * usando el mismo PricingService que salva la reserva. No persiste nada.
      */

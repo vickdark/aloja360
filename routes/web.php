@@ -32,6 +32,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('businesses', BusinessController::class);
 
     // Reservas
+    Route::get('reservations/calendar', [ReservationController::class, 'calendar'])->name('reservations.calendar');
+    Route::get('reservations/calendar-data', [ReservationController::class, 'calendarData'])->name('reservations.calendarData');
     Route::post('reservations/estimate', [ReservationController::class, 'estimate'])->name('reservations.estimate');
     Route::get('reservations/{reservation}/pdf', [ReservationController::class, 'pdf'])->name('reservations.pdf');
     Route::post('reservations/{reservation}/send-email', [ReservationController::class, 'sendEmail'])->name('reservations.sendEmail');

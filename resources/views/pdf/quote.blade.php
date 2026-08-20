@@ -355,19 +355,12 @@
                     $dpUnit = $quote->pricing_type?->value === 'per_person'
                         ? $dpTotal / max(1, $quote->guests_count)
                         : $dpTotal;
-                    $dpLabels = collect($rateSnapshot['adjustments'] ?? [])
-                        ->map(fn ($a) => $a['label'] ?? $a['name'] ?? '')
-                        ->filter()
-                        ->implode(' · ');
                 @endphp
                 <tr>
                     <td>
                         <strong>Pasadía en {{ $quote->accommodation?->name }}</strong>
                         <br>
                         <small style="color: #64748b;">{{ $quote->check_in_date?->format('d/m/Y') }} · {{ $quote->pricing_type?->label() }}</small>
-                        @if($dpLabels)
-                            <br><small style="color: #92400e;">Modificadores: {{ $dpLabels }}</small>
-                        @endif
                     </td>
                     <td class="text-center">
                         @if($quote->pricing_type?->value === 'per_person')
@@ -387,19 +380,12 @@
                         $nightUnit = $quote->pricing_type?->value === 'per_person'
                             ? $nightTotal / max(1, $quote->guests_count)
                             : $nightTotal;
-                        $nightLabels = collect($night['adjustments'] ?? [])
-                            ->map(fn ($a) => $a['label'] ?? $a['name'] ?? '')
-                            ->filter()
-                            ->implode(' · ');
                     @endphp
                     <tr>
                         <td>
                             <strong>Noche del {{ $d->format('d/m/Y') }}</strong>
                             <br>
                             <small style="color: #64748b;">{{ $quote->accommodation?->name }} · {{ $quote->pricing_type?->label() }}</small>
-                            @if($nightLabels)
-                                <br><small style="color: #92400e;">Modificadores: {{ $nightLabels }}</small>
-                            @endif
                         </td>
                         <td class="text-center">
                             @if($quote->pricing_type?->value === 'per_person')

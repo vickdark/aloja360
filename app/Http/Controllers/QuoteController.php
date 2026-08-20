@@ -57,7 +57,7 @@ class QuoteController extends Controller
     public function create()
     {
         $this->authorize('create', Quote::class);
-        $accommodations = Accommodation::where('status', 'available')->orWhere('status', '!=', 'maintenance')->get(['id', 'name', 'pricing_type']);
+        $accommodations = Accommodation::where('status', '!=', 'maintenance')->orderBy('name')->get();
         $guests = Guest::all()->sortBy('first_name')->mapWithKeys(function ($g) {
             $doc = $g->document_number ? ' ('.$g->document_number.')' : '';
             $phone = $g->phone ? ' - '.$g->phone : '';
@@ -79,10 +79,13 @@ class QuoteController extends Controller
             $data['code'] = $data['code'] ?? ('COT-' . strtoupper(Str::random(6)));
             $data['status'] = QuoteStatus::Draft;
             $data['guests_count'] = ($data['adults_count'] ?? 1) + ($data['children_count'] ?? 0);
-            
+
             $checkIn = now()->parse($data['check_in_date']);
             $checkOut = now()->parse($data['check_out_date']);
-            $data['nights_count'] = $checkIn->diffInDays($checkOut);
+            
+            $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
+            $data['is_day_pass'] = $isDayPass;
+            $data['nights_count'] = $isDayPass ? 0 : $checkIn->diffInDays($checkOut);
 
             // Calcular Precios Base
             $accommodation = Accommodation::findOrFail($data['accommodation_id']);
@@ -91,7 +94,8 @@ class QuoteController extends Controller
                 $checkIn,
                 $checkOut,
                 $data['guests_count'],
-                $data['pricing_type'] ?? null
+                $data['pricing_type'] ?? null,
+                $isDayPass
             );
 
             $data['nightly_subtotal'] = $prices['subtotal'];
@@ -130,7 +134,7 @@ class QuoteController extends Controller
             return redirect()->route('quotes.show', $quote)->with('warning', 'No se puede editar una cotización ya convertida.');
         }
 
-        $accommodations = Accommodation::orderBy('name')->get(['id', 'name', 'pricing_type']);
+        $accommodations = Accommodation::orderBy('name')->get();
         $guests = Guest::all()->sortBy('first_name')->mapWithKeys(function ($g) {
             $doc = $g->document_number ? ' ('.$g->document_number.')' : '';
             $phone = $g->phone ? ' - '.$g->phone : '';
@@ -154,9 +158,12 @@ class QuoteController extends Controller
             $data = $request->validated();
             $data['guests_count'] = ($data['adults_count'] ?? 1) + ($data['children_count'] ?? 0);
             
+            $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
+            $data['is_day_pass'] = $isDayPass;
+
             $checkIn = now()->parse($data['check_in_date']);
             $checkOut = now()->parse($data['check_out_date']);
-            $data['nights_count'] = $checkIn->diffInDays($checkOut);
+            $data['nights_count'] = $isDayPass ? 0 : $checkIn->diffInDays($checkOut);
 
             // Recalcular Precios
             $accommodation = Accommodation::findOrFail($data['accommodation_id']);
@@ -165,7 +172,8 @@ class QuoteController extends Controller
                 $checkIn,
                 $checkOut,
                 $data['guests_count'],
-                $data['pricing_type'] ?? null
+                $data['pricing_type'] ?? null,
+                $isDayPass
             );
 
             $data['nightly_subtotal'] = $prices['subtotal'];
@@ -281,18 +289,58 @@ class QuoteController extends Controller
 
             DB::commit();
             
-            // Flujo exitoso: Redirigir a Registrar Pago para confirmar la reserva
+            // Flujo exitoso: Redirigir a Registrar Depósito para confirmar la reserva
             return redirect()
                 ->route('payments.create', [
                     'reservation_id' => $reservation->id,
-                    'guest_id' => $reservation->primary_guest_id,
-                    'amount' => $reservation->total_amount,
+                    'guest_id'       => $reservation->primary_guest_id,
+                    'payment_type'   => 'deposit',
                 ])
-                ->with('success', '¡Cotización convertida en Reserva <b>#' . $reservation->code . '</b>! Registra el pago a continuación para confirmarla.');
+                ->with('success', '¡Cotización convertida en Reserva <b>#' . $reservation->code . '</b>! Registra el depósito inicial para confirmarla.');
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'No se pudo convertir: ' . $e->getMessage());
+        }
+    }
+
+    public function pdf(Quote $quote)
+    {
+        $this->authorize('view', $quote);
+        $quote->load(['accommodation', 'guest', 'createdBy']);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.quote', compact('quote'));
+        
+        return $pdf->stream("Cotizacion-{$quote->code}.pdf");
+    }
+
+    public function sendEmail(Request $request, Quote $quote)
+    {
+        $this->authorize('view', $quote);
+
+        $request->validate([
+            'email_recipient_type' => 'required|in:registered,custom',
+            'custom_email' => 'required_if:email_recipient_type,custom|nullable|email',
+            'custom_message' => 'nullable|string|max:1000',
+        ]);
+
+        $recipientEmail = $request->email_recipient_type === 'custom'
+            ? $request->custom_email
+            : $quote->guest?->email;
+
+        if (!$recipientEmail) {
+            return back()->with('error', 'El cliente no tiene un correo registrado. Por favor especifica un correo válido.');
+        }
+
+        try {
+            $quote->load(['accommodation', 'guest', 'createdBy']);
+            \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(
+                new \App\Mail\QuoteInvoiceMail($quote, $request->custom_message)
+            );
+
+            return back()->with('success', "Cotización enviada exitosamente a <b>{$recipientEmail}</b> con el PDF adjunto.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al enviar el correo: ' . $e->getMessage());
         }
     }
 }

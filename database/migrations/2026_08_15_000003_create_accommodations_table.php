@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('accommodations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')->constrained()->onDelete('cascade');
+            $table->foreignId('business_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('code')->unique();
             $table->string('name');
             $table->string('slug')->nullable();

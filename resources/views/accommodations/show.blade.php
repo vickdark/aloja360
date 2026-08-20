@@ -245,27 +245,94 @@
             <div class="card border-0 shadow-soft rounded-4 mb-4 overflow-hidden">
                 <div class="card-header bg-primary text-white border-0 p-4">
                     <h4 class="mb-0 fw-bold">
-                        <i class="fa-solid fa-tags me-2"></i> Información Financiera
+                        <i class="fa-solid fa-tags me-2"></i> Tarifas de Hospedaje (Noches)
                     </h4>
                 </div>
                 <div class="card-body p-4">
                     <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
-                        <span class="text-muted fw-medium">Precio Base</span>
-                        <span class="h5 fw-bold">${{ number_format($accommodation->base_price, 2) }} <small class="text-muted fw-normal">/ noche</small></span>
+                        <span class="text-muted fw-medium">Tipo de Cobro Estándar</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 rounded-pill">
+                            <i class="fa-solid fa-moon me-1"></i> {{ $accommodation->pricing_type?->label() ?? 'Por alojamiento' }}
+                        </span>
+                    </div>
+                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
+                        <span class="text-muted fw-medium">Tarifa Alojamiento Completo</span>
+                        <span class="h6 fw-bold mb-0">${{ number_format($accommodation->base_price, 2) }} <small class="text-muted fw-normal">/ noche</small></span>
+                    </div>
+                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
+                        <span class="text-muted fw-medium">Tarifa por Persona</span>
+                        <span class="h6 fw-bold mb-0">
+                            @if($accommodation->price_per_person > 0)
+                                ${{ number_format($accommodation->price_per_person, 2) }} <small class="text-muted fw-normal">/ persona / noche</small>
+                            @else
+                                <span class="text-muted fw-normal small">No configurada</span>
+                            @endif
+                        </span>
                     </div>
                     <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
                         <span class="text-muted fw-medium">Tarifa Limpieza</span>
-                        <span class="h6 fw-bold">${{ number_format($accommodation->cleaning_fee ?? 0, 2) }}</span>
+                        <span class="h6 fw-bold mb-0">${{ number_format($accommodation->cleaning_fee ?? 0, 2) }}</span>
                     </div>
                     <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-3">
                         <span class="text-muted fw-medium">Depósito Seguridad</span>
-                        <span class="h6 fw-bold">${{ number_format($accommodation->security_deposit ?? 0, 2) }}</span>
+                        <span class="h6 fw-bold mb-0">${{ number_format($accommodation->security_deposit ?? 0, 2) }}</span>
                     </div>
                     @if($accommodation->weekend_price_modifier)
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted fw-medium">Fin de Semana</span>
+                            <span class="text-muted fw-medium">Multiplicador Fin de Semana</span>
                             <span class="badge bg-warning text-dark fw-bold fs-6">x{{ $accommodation->weekend_price_modifier }}</span>
                         </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Configuración Pasadías -->
+            <div class="card border-0 shadow-soft rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-3 fw-bold text-dark d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-sun text-warning me-2"></i> Modalidad Pasadía</span>
+                        @if($accommodation->allows_day_pass)
+                            <span class="badge bg-success rounded-pill px-3 py-2">Disponible</span>
+                        @else
+                            <span class="badge bg-secondary rounded-pill px-3 py-2">No Permitido</span>
+                        @endif
+                    </h5>
+                    @if($accommodation->allows_day_pass)
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Tipo de Cobro Pasadía:</span>
+                            <span class="badge bg-warning bg-opacity-25 text-dark fw-bold px-3 py-1 rounded-pill">
+                                {{ $accommodation->day_pass_pricing_type?->label() ?? 'Por alojamiento' }}
+                            </span>
+                        </div>
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Aforo Máximo:</span>
+                            <span class="fw-bold">{{ $accommodation->day_pass_max_guests ?? $accommodation->max_guests }} personas</span>
+                        </div>
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Horario Pasadía:</span>
+                            <span class="fw-bold">{{ $accommodation->day_pass_check_in_time ?? '08:00' }} - {{ $accommodation->day_pass_check_out_time ?? '17:00' }}</span>
+                        </div>
+                        
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                <span class="text-muted small fw-medium">Tarifa Alojamiento Completo:</span>
+                                <span class="fw-bold text-dark">
+                                    ${{ number_format($accommodation->day_pass_base_price ?? $accommodation->base_price, 2) }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small fw-medium">Tarifa por Persona:</span>
+                                <span class="fw-bold text-dark">
+                                    @if(($accommodation->day_pass_price_per_person ?? 0) > 0)
+                                        ${{ number_format($accommodation->day_pass_price_per_person, 2) }} <small class="text-muted fw-normal">/ persona</small>
+                                    @else
+                                        <span class="text-muted fw-normal small">No configurada</span>
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-muted small mb-0">Este alojamiento no está habilitado para reservas de pasadía.</p>
                     @endif
                 </div>
             </div>

@@ -35,10 +35,24 @@ return new class extends Migration
 
         foreach ($tables as $tableName) {
             if (Schema::hasColumn($tableName, 'business_id')) {
-                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
-                    $table->dropForeign(['business_id']);
-                    $table->dropColumn('business_id');
-                });
+                // Make nullable first for SQLite compatibility
+                try {
+                    Schema::table($tableName, function (Blueprint $table) {
+                        $table->unsignedBigInteger('business_id')->nullable()->change();
+                    });
+                } catch (\Throwable $e) {}
+
+                try {
+                    Schema::table($tableName, function (Blueprint $table) {
+                        $table->dropForeign(['business_id']);
+                    });
+                } catch (\Throwable $e) {}
+
+                try {
+                    Schema::table($tableName, function (Blueprint $table) {
+                        $table->dropColumn('business_id');
+                    });
+                } catch (\Throwable $e) {}
             }
         }
 

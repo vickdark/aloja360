@@ -15,10 +15,41 @@ class AmenityController extends Controller
     public function index()
     {
         $this->authorize('viewAny', Amenity::class);
+
+        if (request()->ajax() || request()->wantsJson()) {
+            $query = Amenity::query();
+
+            $limit = request()->get('limit', 10);
+            $offset = request()->get('offset', 0);
+            $search = request()->get('search');
+
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('category', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $total = $query->count();
+            $amenities = $query->orderBy('sort_order', 'asc')
+                               ->orderBy('name', 'asc')
+                               ->offset($offset)
+                               ->limit($limit)
+                               ->get();
+
+            return response()->json([
+                'data' => $amenities,
+                'total' => (int) $total,
+                'status' => 'success'
+            ]);
+        }
+
         $amenities = Amenity::orderBy('sort_order')->orderBy('name')->paginate(20);
         $categories = Amenity::select('category')->whereNotNull('category')->distinct()->pluck('category');
         return view('amenities.index', compact('amenities', 'categories'));
     }
+
 
     public function create()
     {

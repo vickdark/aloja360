@@ -91,23 +91,45 @@
                                 <input type="text" name="empresa_id_fiscal" class="form-control rounded-3" value="{{ setting('empresa_id_fiscal') }}">
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-uppercase text-muted">Dirección Física</label>
-                            <input type="text" name="empresa_direccion" class="form-control rounded-3" value="{{ setting('empresa_direccion') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Dirección Física</label>
+                                <input type="text" name="empresa_direccion" class="form-control rounded-3" value="{{ setting('empresa_direccion') }}" placeholder="Ej: Vereda La Esmeralda Km 4">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Ciudad / Municipio</label>
+                                <input type="text" name="empresa_ciudad" class="form-control rounded-3" value="{{ setting('empresa_ciudad') }}" placeholder="Ej: Villa de Leyva, Boyacá">
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Teléfono de Contacto</label>
-                                <input type="text" name="empresa_telefono" class="form-control rounded-3" value="{{ setting('empresa_telefono') }}">
+                                <input type="text" name="empresa_telefono" class="form-control rounded-3" value="{{ setting('empresa_telefono') }}" placeholder="Ej: +57 312 345 6789">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Email Corporativo</label>
-                                <input type="email" name="empresa_email" class="form-control rounded-3" value="{{ setting('empresa_email') }}">
+                                <input type="email" name="empresa_email" class="form-control rounded-3" value="{{ setting('empresa_email') }}" placeholder="contacto@aloja.com">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Sitio Web</label>
+                                <input type="text" name="empresa_web" class="form-control rounded-3" value="{{ setting('empresa_web') }}" placeholder="https://www.aloja.com">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Régimen / Resolución (Opcional)</label>
+                                <input type="text" name="empresa_regimen" class="form-control rounded-3" value="{{ setting('empresa_regimen') }}" placeholder="Ej: Régimen Simplificado / No Responsable de IVA">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold small text-uppercase text-muted">Sitio Web</label>
-                            <input type="text" name="empresa_web" class="form-control rounded-3" value="{{ setting('empresa_web') }}">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Cuentas Bancarias / Medios de Pago (Opcional)</label>
+                            <textarea name="empresa_banco_info" rows="2" class="form-control rounded-3" placeholder="Ej: Bancolombia Ahorros #123-456789-00 a nombre de Empresa SAS | Nequi/Daviplata 3123456789">{{ setting('empresa_banco_info') }}</textarea>
+                            <div class="form-text">Aparece en cotizaciones y facturas para que el cliente realice transferencias.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Frase o Pie de Página de Facturas / Cotizaciones (Opcional)</label>
+                            <textarea name="empresa_pie_pagina" rows="2" class="form-control rounded-3" placeholder="Ej: ¡Gracias por preferirnos! Para confirmar su reserva recuerde realizar el anticipo del 50%.">{{ setting('empresa_pie_pagina') }}</textarea>
+                            <div class="form-text">Texto de agradecimiento, términos o instrucciones al final del PDF.</div>
                         </div>
                     </div>
                 </div>

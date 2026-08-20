@@ -27,8 +27,10 @@ import { initMaintenanceIndex } from './pages/maintenance/index';
 import { initExpensesIndex } from './pages/expenses/index';
 import { initBusinessesIndex } from './pages/businesses/index';
 import { initReportsIndex } from './pages/reports/index';
+import { initAmenitiesIndex } from './pages/amenities/index';
 
 //Opciones de expotacion para Grid JS 
+
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -60,6 +62,8 @@ window.initMaintenanceIndex = initMaintenanceIndex;
 window.initExpensesIndex = initExpensesIndex;
 window.initBusinessesIndex = initBusinessesIndex;
 window.initReportsIndex = initReportsIndex;
+window.initAmenitiesIndex = initAmenitiesIndex;
+
 
 // Initialize
 Alpine.start();

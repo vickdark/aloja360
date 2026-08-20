@@ -141,6 +141,13 @@ erDiagram
         decimal base_price
         string pricing_type "per_accommodation | per_person (Enum PricingType)"
         decimal price_per_person "precio base noche por persona"
+        boolean allows_day_pass "habilita reservas de pasadía"
+        int day_pass_max_guests "aforo máximo para pasadías"
+        time day_pass_check_in_time "hora inicio pasadía (default 08:00)"
+        time day_pass_check_out_time "hora fin pasadía (default 17:00)"
+        string day_pass_pricing_type "per_accommodation | per_person"
+        decimal day_pass_base_price "tarifa plana por pasadía"
+        decimal day_pass_price_per_person "tarifa por persona pasadía"
         decimal cleaning_fee
         decimal security_deposit
         string check_in_time
@@ -224,6 +231,7 @@ erDiagram
         string status
         bigint accommodation_id FK
         string pricing_type "per_accommodation | per_person (Enum PricingType) — snapshot del tipo de cobro elegido"
+        boolean is_day_pass "indica si es cotización de pasadía"
         bigint guest_id FK
         date check_in_date
         date check_out_date
@@ -245,6 +253,7 @@ erDiagram
         string source
         bigint accommodation_id FK
         string pricing_type "per_accommodation | per_person (Enum PricingType) — snapshot del tipo de cobro elegido"
+        boolean is_day_pass "indica si la reserva es modalidad pasadía (0 noches)"
         bigint primary_guest_id FK
         bigint quote_id FK
         date check_in_date

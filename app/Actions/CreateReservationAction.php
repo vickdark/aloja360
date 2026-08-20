@@ -29,6 +29,7 @@ class CreateReservationAction
             $checkIn = $data['check_in_date'];
             $checkOut = $data['check_out_date'];
             $guestsCount = $data['guests_count'] ?? 1;
+            $isDayPass = !empty($data['is_day_pass']) || ($checkIn === $checkOut);
 
             // Verificar disponibilidad
             if (!$this->availabilityService->isAvailable($accommodationId, $checkIn, $checkOut)) {
@@ -36,8 +37,8 @@ class CreateReservationAction
             }
 
             // Calcular precios y snapshot
-            $nightlySubtotal = $this->pricingService->calculateNightlySubtotal($accommodationId, $checkIn, $checkOut, $guestsCount);
-            $rateSnapshot = $this->pricingService->generateRateSnapshot($accommodationId, $checkIn, $checkOut, $guestsCount);
+            $nightlySubtotal = $this->pricingService->calculateNightlySubtotal($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass);
+            $rateSnapshot = $this->pricingService->generateRateSnapshot($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass);
             
             // Si no se proveen valores de servicios, limpieza, depósitos, usamos 0 o defaults
             $servicesTotal = $data['services_total'] ?? 0.0;
@@ -50,6 +51,7 @@ class CreateReservationAction
             $reservation = Reservation::create(array_merge($data, [
                 'code' => $data['code'] ?? Str::upper(Str::random(8)),
                 'status' => ReservationStatus::Pending,
+                'is_day_pass' => $isDayPass,
                 'nightly_subtotal' => $nightlySubtotal,
                 'services_total' => $servicesTotal,
                 'cleaning_fee' => $cleaningFee,
@@ -57,7 +59,7 @@ class CreateReservationAction
                 'discount_total' => $discountTotal,
                 'total_amount' => $totalAmount,
                 'rate_snapshot' => $rateSnapshot,
-                'nights_count' => Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut)),
+                'nights_count' => $isDayPass ? 0 : Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut)),
             ]));
 
             // Registrar historial de estado

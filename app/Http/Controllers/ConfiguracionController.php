@@ -37,7 +37,11 @@ class ConfiguracionController extends Controller
         $data = $request->except('_token', '_method', 'app_logo_image');
 
         foreach ($data as $key => $value) {
-            Configuracion::where('key', $key)->update(['value' => $value]);
+            $group = str_starts_with($key, 'empresa_') ? 'empresa' : 'app';
+            Configuracion::updateOrCreate(
+                ['key' => $key],
+                ['value' => $value, 'group' => $group]
+            );
         }
 
         Cache::forget('app_settings');

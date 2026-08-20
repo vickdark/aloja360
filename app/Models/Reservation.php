@@ -22,6 +22,7 @@ class Reservation extends Model
         'source',
         'accommodation_id',
         'pricing_type',
+        'is_day_pass',
         'primary_guest_id',
         'quote_id',
         'check_in_date',
@@ -63,6 +64,7 @@ class Reservation extends Model
         return [
             'status' => ReservationStatus::class,
             'pricing_type' => PricingType::class,
+            'is_day_pass' => 'boolean',
             'check_in_date' => 'date',
             'check_out_date' => 'date',
             'actual_check_in_at' => 'datetime',

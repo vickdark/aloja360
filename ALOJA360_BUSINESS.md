@@ -334,6 +334,22 @@ Notas:
 - La entidad encargada de aplicar la lógica: `App\Services\PricingService`.
 - El `rate_snapshot` de Quote/Reservation debe persistir `pricing_type`, `base_price`, `price_per_person` y `guests_count` para trazabilidad histórica.
 
+## Modalidad de Pasadías (Day Pass)
+
+Un pasadía es un uso del alojamiento sin pernoctación (`check_in_date == check_out_date`, 0 noches).
+
+Configuración por alojamiento:
+- `allows_day_pass`: Indica si el alojamiento admite reservas en modalidad de pasadía.
+- `day_pass_max_guests`: Aforo máximo permitido para pasadías (puede ser diferente a la capacidad nocturna `max_guests`).
+- `day_pass_check_in_time` y `day_pass_check_out_time`: Horario operativo del pasadía (por defecto 08:00 a 17:00).
+- `day_pass_pricing_type`: Esquema de cobro (`per_accommodation` o `per_person`).
+- `day_pass_base_price` y `day_pass_price_per_person`: Tarifas correspondientes (`decimal(14,2)`).
+
+En la reserva/cotización:
+- `is_day_pass`: Boolean que identifica la reserva/cotización como pasadía.
+- `nights_count`: 0 noches.
+- `PricingService` calcula la tarifa correspondiente al pasadía y `AvailabilityService` garantiza que no existan cruces ni con reservas nocturnas ni con otros pasadías el mismo día.
+
 ## Regla fundamental
 
 El estado operativo de un alojamiento y su disponibilidad por fechas son conceptos relacionados pero diferentes.

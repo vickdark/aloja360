@@ -95,6 +95,9 @@ class ReservationController extends Controller
             $data = $request->validated();
             $data['created_by'] = $request->user()->id;
 
+            $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
+            $data['is_day_pass'] = $isDayPass;
+
             // Si no se proveen valores financieros manualmente, calcularlos automaticamente
             if (!isset($data['nightly_subtotal']) || !isset($data['total_amount'])) {
                 $accommodation = Accommodation::find($data['accommodation_id']);
@@ -104,7 +107,8 @@ class ReservationController extends Controller
                     $data['check_in_date'],
                     $data['check_out_date'],
                     $guests,
-                    $data['pricing_type'] ?? null
+                    $data['pricing_type'] ?? null,
+                    $isDayPass
                 );
 
                 $data['pricing_type'] = $prices['pricing_type'];
@@ -182,10 +186,14 @@ class ReservationController extends Controller
         try {
             $data = $request->validated();
 
+            $isDayPass = $request->boolean('is_day_pass') || ($data['check_in_date'] === $data['check_out_date']);
+            $data['is_day_pass'] = $isDayPass;
+
             // Si las fechas o alojamiento cambiaron, recalcular precios
             $datesChanged = $reservation->check_in_date->format('Y-m-d') !== $request->input('check_in_date')
                 || $reservation->check_out_date->format('Y-m-d') !== $request->input('check_out_date')
                 || $reservation->accommodation_id !== $request->input('accommodation_id')
+                || ((bool) $reservation->is_day_pass !== $isDayPass)
                 || ($request->filled('pricing_type') && ((string) $reservation->pricing_type?->value !== (string) $request->input('pricing_type')));
 
             if ($datesChanged) {
@@ -196,7 +204,8 @@ class ReservationController extends Controller
                     $data['check_in_date'],
                     $data['check_out_date'],
                     $guests,
-                    $data['pricing_type'] ?? null
+                    $data['pricing_type'] ?? null,
+                    $isDayPass
                 );
 
                 $data['pricing_type'] = $prices['pricing_type'];
@@ -302,8 +311,21 @@ class ReservationController extends Controller
             if ($request->wantsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
             }
+
+            // Si el error es por falta de pago, redirigir directamente al registro de pago
+            if (str_contains($e->getMessage(), 'depósito o pago confirmado')) {
+                return redirect()
+                    ->route('payments.create', [
+                        'reservation_id' => $reservation->id,
+                        'guest_id'       => $reservation->primary_guest_id,
+                        'payment_type'   => 'deposit',
+                    ])
+                    ->with('warning', 'Para confirmar la reserva <b>#' . $reservation->code . '</b> primero debes registrar un depósito o pago.');
+            }
+
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+
     }
 
     public function checkIn(Reservation $reservation, Request $request, CheckInReservationAction $action): \Illuminate\Http\RedirectResponse|JsonResponse
@@ -398,6 +420,46 @@ class ReservationController extends Controller
                 return response()->json(['message' => $e->getMessage()], 422);
             }
             return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function pdf(Reservation $reservation)
+    {
+        $this->authorize('view', $reservation);
+        $reservation->load(['accommodation', 'primaryGuest', 'payments', 'createdBy']);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reservation', compact('reservation'));
+
+        return $pdf->stream("Reserva-{$reservation->code}.pdf");
+    }
+
+    public function sendEmail(Request $request, Reservation $reservation)
+    {
+        $this->authorize('view', $reservation);
+
+        $request->validate([
+            'email_recipient_type' => 'required|in:registered,custom',
+            'custom_email'         => 'required_if:email_recipient_type,custom|nullable|email',
+            'custom_message'       => 'nullable|string|max:1000',
+        ]);
+
+        $recipientEmail = $request->email_recipient_type === 'custom'
+            ? $request->custom_email
+            : $reservation->primaryGuest?->email;
+
+        if (!$recipientEmail) {
+            return back()->with('error', 'El huésped no tiene un correo registrado. Por favor especifica un correo válido.');
+        }
+
+        try {
+            $reservation->load(['accommodation', 'primaryGuest', 'payments', 'createdBy']);
+            \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(
+                new \App\Mail\ReservationInvoiceMail($reservation, $request->custom_message)
+            );
+
+            return back()->with('success', "Comprobante enviado exitosamente a <b>{$recipientEmail}</b> con el PDF adjunto.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al enviar el correo: ' . $e->getMessage());
         }
     }
 }

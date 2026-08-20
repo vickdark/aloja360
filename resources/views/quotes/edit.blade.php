@@ -33,6 +33,20 @@
                         </h4>
 
                         <div class="row g-3">
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-sun text-warning fs-3"></i>
+                                        <div>
+                                            <div class="fw-bold text-dark">Cotización Modalidad Pasadía (Sin pernoctar)</div>
+                                            <small class="text-muted">Si se activa, el check-in y check-out corresponden a la misma fecha (0 noches).</small>
+                                        </div>
+                                    </div>
+                                    <div class="form-check form-switch fs-4 mb-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" name="is_day_pass" value="1" id="is_day_pass" {{ (old('is_day_pass') ?? $quote->is_day_pass) ? 'checked' : '' }}>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">Huésped</label>
                                 <select name="guest_id" id="guest_id" class="form-select form-select-lg @error('guest_id') is-invalid @enderror" required>
@@ -48,7 +62,23 @@
                                 <select name="accommodation_id" id="accommodation_id" class="form-select form-select-lg @error('accommodation_id') is-invalid @enderror" required>
                                     <option value="">Seleccionar alojamiento</option>
                                     @foreach($accommodations as $acc)
-                                        <option value="{{ $acc->id }}" data-pricing="{{ $acc->pricing_type?->value ?? 'per_accommodation' }}" {{ (old('accommodation_id') ?? $quote->accommodation_id) == $acc->id ? 'selected' : '' }}>{{ $acc->name }}</option>
+                                        @php
+                                            $pricingType = is_a($acc->pricing_type, \App\Enums\PricingType::class) ? $acc->pricing_type : \App\Enums\PricingType::tryFrom($acc->pricing_type) ?? \App\Enums\PricingType::PerAccommodation;
+                                            $dpPricingType = is_a($acc->day_pass_pricing_type, \App\Enums\PricingType::class) ? $acc->day_pass_pricing_type : \App\Enums\PricingType::tryFrom($acc->day_pass_pricing_type) ?? \App\Enums\PricingType::PerAccommodation;
+                                        @endphp
+                                        <option value="{{ $acc->id }}"
+                                            data-pricing="{{ $pricingType->value }}"
+                                            data-price="{{ $acc->base_price }}"
+                                            data-price-per-person="{{ $acc->price_per_person ?? 0 }}"
+                                            data-allows-day-pass="{{ $acc->allows_day_pass ? '1' : '0' }}"
+                                            data-day-pass-pricing-type="{{ $dpPricingType->value }}"
+                                            data-day-pass-base-price="{{ $acc->day_pass_base_price ?? $acc->base_price }}"
+                                            data-day-pass-price-per-person="{{ $acc->day_pass_price_per_person ?? $acc->price_per_person ?? 0 }}"
+                                            data-cleaning="{{ $acc->cleaning_fee ?? 0 }}"
+                                            data-deposit="{{ $acc->security_deposit ?? 0 }}"
+                                            {{ (old('accommodation_id') ?? $quote->accommodation_id) == $acc->id ? 'selected' : '' }}>
+                                            {{ $acc->name }}
+                                        </option>
                                     @endforeach
                                 </select>
                                 @error('accommodation_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -177,22 +207,25 @@
                         <hr class="my-4 border-2">
                         
                         <div class="d-flex justify-content-between mb-2 small text-muted">
-                            <span>Noches Previas:</span>
-                            <span class="fw-bold">{{ $quote->nights_count }}</span>
+                            <span><i class="fa-solid fa-moon me-1"></i> Noches:</span>
+                            <span id="night_count_preview" class="fw-bold">...</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2 small text-muted">
-                            <span>Subtotal Guardado:</span>
-                            <span class="fw-bold">${{ number_format($quote->nightly_subtotal, 2) }}</span>
+                            <span>Personas (Pax):</span>
+                            <span id="pax_count_preview" class="fw-bold">...</span>
                         </div>
-                        
-                        <div class="p-3 rounded-4 bg-gradient-to-r from-warning-subtle to-light border border-warning-subtle">
+
+                        <div class="p-4 rounded-4 bg-success-subtle text-success-emphasis border border-success-subtle mt-4">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold fs-5">NUEVO TOTAL</span>
-                                <span class="fs-4 fw-bold text-warning">
-                                    ${{ number_format($quote->total_amount, 0) }}
+                                <span class="fw-bold fs-6 opacity-75">TOTAL ESTIMADO</span>
+                                <span class="fs-3 fw-bold text-success d-flex align-items-start gap-1">
+                                    <small>$</small>
+                                    <span id="total_preview_text">--</span>
                                 </span>
                             </div>
-                            <div class="form-text text-center mt-1 small">Será recalculado al Guardar</div>
+                            <div class="mt-2 text-center">
+                                <small id="price_breakdown" class="text-muted fst-italic"></small>
+                            </div>
                         </div>
 
                         <div class="d-grid gap-2 mt-4">
@@ -209,6 +242,9 @@
 </div>
 
 <script>
+const PER_ACCOMMODATION = '{{ App\Enums\PricingType::PerAccommodation->value }}';
+const PER_PERSON = '{{ App\Enums\PricingType::PerPerson->value }}';
+
 function adjustVal(id, change) {
     const input = document.getElementById(id);
     const min = parseInt(input.min) || 0;
@@ -216,24 +252,153 @@ function adjustVal(id, change) {
     val += change;
     if(val < min) val = min;
     input.value = val;
+    updatePaxCount();
 }
 
-function syncPricingFromAccommodation() {
+function updatePaxCount() {
+    const a = parseInt(document.getElementById('adults_count').value) || 0;
+    const c = parseInt(document.getElementById('children_count').value) || 0;
+    const total = a + c;
+    document.getElementById('pax_count_preview').innerText = total;
+    calculateEstimate();
+}
+
+function syncPricingTypeForMode() {
     const accSel = document.getElementById('accommodation_id');
     const pricingSel = document.getElementById('pricing_type');
     if (!accSel || !pricingSel) return;
-    const selectedOpt = accSel.options[accSel.selectedIndex];
-    const suggested = selectedOpt ? selectedOpt.getAttribute('data-pricing') : null;
-    if (suggested) {
-        // Solo setear si el cambio fue por interacción del usuario (no al cargar)
-        const hadOldValue = @json(old('pricing_type') !== null);
-        if (!hadOldValue) {
-            pricingSel.value = suggested;
-        }
-    }
+    const opt = accSel.options[accSel.selectedIndex];
+    if (!opt || !opt.value) return;
+    const isDayPass = isDayPassSwitch && isDayPassSwitch.checked;
+    const newType = isDayPass
+        ? (opt.getAttribute('data-day-pass-pricing-type') || PER_ACCOMMODATION)
+        : (opt.getAttribute('data-pricing') || PER_ACCOMMODATION);
+    pricingSel.value = newType;
+    delete pricingSel.dataset.userSet;
 }
 
-document.getElementById('accommodation_id').addEventListener('change', syncPricingFromAccommodation);
+const isDayPassSwitch = document.getElementById('is_day_pass');
+const checkOutInput = document.getElementById('check_out_date');
+
+function toggleDayPassMode() {
+    const isDayPass = isDayPassSwitch && isDayPassSwitch.checked;
+    if (isDayPass) {
+        const inD = document.getElementById('check_in_date').value;
+        if (inD) checkOutInput.value = inD;
+        checkOutInput.readOnly = true;
+    } else {
+        checkOutInput.readOnly = false;
+    }
+    syncPricingTypeForMode();
+    calculateEstimate();
+}
+
+if (isDayPassSwitch) {
+    isDayPassSwitch.addEventListener('change', toggleDayPassMode);
+}
+
+function calculateNights() {
+    const isDayPass = isDayPassSwitch && isDayPassSwitch.checked;
+    if (isDayPass) {
+        document.getElementById('night_count_preview').innerText = '0 (Pasadía)';
+        return 0;
+    }
+    const inD = document.getElementById('check_in_date').value;
+    const outD = document.getElementById('check_out_date').value;
+    if (inD && outD) {
+        const diff = Math.ceil((new Date(outD) - new Date(inD)) / (1000 * 60 * 60 * 24));
+        document.getElementById('night_count_preview').innerText = diff > 0 ? diff + ' noche(s)' : 'Fechas inválidas';
+        return diff > 0 ? diff : 0;
+    }
+    document.getElementById('night_count_preview').innerText = 'Seleccione fechas';
+    return 0;
+}
+
+function fmt(n) { return n.toLocaleString('es-CO', { maximumFractionDigits: 0 }); }
+
+function calculateEstimate() {
+    const isDayPass   = isDayPassSwitch && isDayPassSwitch.checked;
+    const nights      = calculateNights();
+    const accSel      = document.getElementById('accommodation_id');
+    const opt         = accSel.options[accSel.selectedIndex];
+    const breakdownEl = document.getElementById('price_breakdown');
+
+    if (!opt || !opt.value) {
+        document.getElementById('total_preview_text').innerText = '--';
+        if (breakdownEl) breakdownEl.innerText = '';
+        return;
+    }
+
+    const basePrice        = parseFloat(opt.getAttribute('data-price')) || 0;
+    const pricePerPerson   = parseFloat(opt.getAttribute('data-price-per-person')) || 0;
+    const dpBasePrice      = parseFloat(opt.getAttribute('data-day-pass-base-price')) || basePrice;
+    const dpPricePerPerson = parseFloat(opt.getAttribute('data-day-pass-price-per-person')) || pricePerPerson;
+
+    const pricingType = document.getElementById('pricing_type').value;
+    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
+    const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
+    const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
+    const a     = parseInt(document.getElementById('adults_count').value) || 0;
+    const c     = parseInt(document.getElementById('children_count').value) || 0;
+    const pax   = Math.max(a + c, 1);
+
+    let subtotal = 0;
+    let breakdown = '';
+
+    if (isDayPass) {
+        if (pricingType === PER_PERSON) {
+            subtotal  = pax * dpPricePerPerson;
+            breakdown = `☀️ ${pax} persona(s) × $${fmt(dpPricePerPerson)} = $${fmt(subtotal)}`;
+        } else {
+            subtotal  = dpBasePrice;
+            breakdown = `☀️ Tarifa plana pasadía: $${fmt(dpBasePrice)}`;
+        }
+    } else {
+        if (pricingType === PER_PERSON) {
+            subtotal  = nights * pax * pricePerPerson;
+            breakdown = `🌙 ${nights} noche(s) × ${pax} persona(s) × $${fmt(pricePerPerson)}`;
+        } else {
+            subtotal  = nights * basePrice;
+            breakdown = `🌙 ${nights} noche(s) × $${fmt(basePrice)}`;
+        }
+    }
+
+    if (breakdownEl) breakdownEl.innerText = breakdown;
+    const total = subtotal + clean - disc + tax;
+    document.getElementById('total_preview_text').innerText = fmt(total);
+}
+
+document.getElementById('pricing_type').addEventListener('change', function() {
+    this.dataset.userSet = '1';
+    calculateEstimate();
+});
+
+document.getElementById('accommodation_id').addEventListener('change', function() {
+    syncPricingTypeForMode();
+    calculateEstimate();
+});
+
+document.getElementById('check_in_date').addEventListener('change', function() {
+    if (isDayPassSwitch && isDayPassSwitch.checked) checkOutInput.value = this.value;
+    calculateEstimate();
+});
+document.getElementById('check_out_date').addEventListener('change', calculateEstimate);
+
+['cleaning_fee', 'security_deposit', 'discount_total', 'tax_total'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calculateEstimate);
+});
+['adults_count', 'children_count'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updatePaxCount);
+    document.getElementById(id).addEventListener('input', updatePaxCount);
+});
+
+// Init
+updatePaxCount();
+toggleDayPassMode();
+calculateEstimate();
+if(document.getElementById('accommodation_id').value) {
+    document.getElementById('accommodation_id').dispatchEvent(new Event('change'));
+}
 </script>
 
 <style>

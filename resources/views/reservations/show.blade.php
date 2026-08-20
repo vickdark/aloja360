@@ -42,6 +42,11 @@
                         <span class="badge bg-{{ $color }} bg-opacity-10 text-{{ $color }} border border border-{{ $color }} rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center">
                             <i class="fa-solid {{ $icon }} me-1"></i> {{ $reservation->status->label() }}
                         </span>
+                        @if($reservation->is_day_pass)
+                            <span class="badge bg-warning bg-opacity-10 text-dark border border-warning rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center">
+                                <i class="fa-solid fa-sun text-warning me-1"></i> Pasadía (0 Noches)
+                            </span>
+                        @endif
                         <span class="text-muted">
                             <i class="fa-solid fa-calendar-days me-1"></i> Creada {{ $reservation->created_at->diffForHumans() }}
                         </span>
@@ -51,21 +56,44 @@
         </div>
         <div class="col-auto">
             <div class="d-flex gap-2 flex-wrap">
+                {{-- PDF & Email --}}
+                <a href="{{ route('reservations.pdf', $reservation) }}" target="_blank" class="btn btn-outline-dark rounded-pill px-4 shadow-sm">
+                    <i class="fa-solid fa-file-pdf me-2"></i> Ver PDF
+                </a>
+                <button type="button" class="btn btn-outline-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#emailModal">
+                    <i class="fa-solid fa-envelope me-2"></i> Enviar por Correo
+                </button>
+
                 @if(!in_array($status, ['checked_out', 'cancelled', 'no_show']))
                     <a href="{{ route('reservations.edit', $reservation) }}" class="btn btn-outline-warning rounded-pill px-4 shadow-sm">
                         <i class="fa-solid fa-pen-to-square me-2"></i> Modificar
                     </a>
                 @endif
-                
-                <a href="{{ route('payments.create', ['reservation_id' => $reservation->id, 'guest_id' => $reservation->primary_guest_id, 'amount' => $reservation->total_amount]) }}" class="btn btn-outline-success rounded-pill px-4 shadow-sm">
-                    <i class="fa-solid fa-dollar-sign me-2"></i> Registrar Pago
-                </a>
 
-                @if($status === 'pending')
-                    <a href="{{ route('payments.create', ['reservation_id' => $reservation->id, 'guest_id' => $reservation->primary_guest_id, 'amount' => $reservation->total_amount]) }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                        <i class="fa-solid fa-check me-2"></i> Confirmar con Pago
-                    </a>
-                @elseif($status === 'confirmed')
+                @if(!in_array($status, ['cancelled', 'no_show', 'checked_out']))
+                    @php
+                        $headerHasDeposit = $reservation->confirmedPayments()->where('type', 'deposit')->exists();
+                    @endphp
+                    @if(!$headerHasDeposit)
+                        <a href="{{ route('payments.create', [
+                                'reservation_id' => $reservation->id,
+                                'guest_id'       => $reservation->primary_guest_id,
+                                'payment_type'   => 'deposit',
+                            ]) }}" class="btn btn-warning rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-hand-holding-dollar me-2"></i> Registrar Depósito
+                        </a>
+                    @else
+                        <a href="{{ route('payments.create', [
+                                'reservation_id' => $reservation->id,
+                                'guest_id'       => $reservation->primary_guest_id,
+                                'payment_type'   => 'payment',
+                            ]) }}" class="btn btn-outline-success rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-dollar-sign me-2"></i> Registrar Pago
+                        </a>
+                    @endif
+                @endif
+
+                @if($status === 'confirmed')
                     <form action="{{ route('reservations.checkIn', $reservation->id) }}" method="POST" onsubmit="return confirm('¿Realizar Check-In del huésped?');">
                         @csrf
                         <button type="submit" class="btn btn-success rounded-pill px-4 shadow-sm">
@@ -80,6 +108,7 @@
                         </button>
                     </form>
                 @endif
+
 
                 @if(in_array($status, ['pending', 'confirmed']))
                     <button class="btn btn-outline-danger rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -112,6 +141,19 @@
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success rounded-4 shadow-sm mb-4 border-0 d-flex align-items-center gap-3">
+            <i class="fa-solid fa-circle-check fs-3"></i>
+            <div><p class="mb-0">{!! session('success') !!}</p></div>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger rounded-4 shadow-sm mb-4 border-0 d-flex align-items-center gap-3">
+            <i class="fa-solid fa-triangle-exclamation fs-3"></i>
+            <div><p class="mb-0">{!! session('error') !!}</p></div>
         </div>
     @endif
 
@@ -327,35 +369,57 @@
         <!-- Columna Lateral: Fechas, Estado, Balance -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-soft rounded-4 bg-white mb-4 overflow-hidden sticky-top" style="top: 20px;">
-                <div class="card-header bg-dark text-white border-0 p-4">
+                <div class="card-header {{ $reservation->is_day_pass ? 'bg-warning text-dark' : 'bg-dark text-white' }} border-0 p-4">
                     <h4 class="mb-0 fw-bold text-center">
-                        <i class="fas fa-calendar-week me-2"></i> Cronograma
+                        <i class="{{ $reservation->is_day_pass ? 'fa-solid fa-sun' : 'fas fa-calendar-week' }} me-2"></i>
+                        {{ $reservation->is_day_pass ? 'Fecha de Pasadía' : 'Cronograma' }}
                     </h4>
                 </div>
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <small class="text-muted fw-bold d-block mb-1">Entrada (Check-In)</small>
-                            <h4 class="fw-bold mb-0 text-success">{{ $reservation->check_in_date?->format('d M Y') }}</h4>
-                            <small class="text-muted">{{ $reservation->check_in_time ?? '15:00' }}</small>
+                    @if($reservation->is_day_pass)
+                        <div class="p-3 bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-4 text-center mb-3">
+                            <span class="badge bg-warning text-dark px-3 py-1 rounded-pill mb-2 fw-bold">
+                                <i class="fa-solid fa-sun me-1"></i> Modalidad Pasadía (Sin Noches)
+                            </span>
+                            <h4 class="fw-bold text-dark mb-1">{{ $reservation->check_in_date?->format('d M Y') }}</h4>
+                            <div class="small text-muted">
+                                Horario: {{ $reservation->check_in_time ?? $reservation->accommodation?->day_pass_check_in_time ?? '08:00' }} - {{ $reservation->check_out_time ?? $reservation->accommodation?->day_pass_check_out_time ?? '17:00' }}
+                            </div>
                         </div>
-                        <i class="fa-solid fa-arrow-right-long text-muted fs-4"></i>
-                        <div class="text-end">
-                            <small class="text-muted fw-bold d-block mb-1">Salida (Check-Out)</small>
-                            <h4 class="fw-bold mb-0 text-danger">{{ $reservation->check_out_date?->format('d M Y') }}</h4>
-                            <small class="text-muted">{{ $reservation->check_out_time ?? '11:00' }}</small>
+                    @else
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <small class="text-muted fw-bold d-block mb-1">Entrada (Check-In)</small>
+                                <h4 class="fw-bold mb-0 text-success">{{ $reservation->check_in_date?->format('d M Y') }}</h4>
+                                <small class="text-muted">{{ $reservation->check_in_time ?? '15:00' }}</small>
+                            </div>
+                            <i class="fa-solid fa-arrow-right-long text-muted fs-4"></i>
+                            <div class="text-end">
+                                <small class="text-muted fw-bold d-block mb-1">Salida (Check-Out)</small>
+                                <h4 class="fw-bold mb-0 text-danger">{{ $reservation->check_out_date?->format('d M Y') }}</h4>
+                                <small class="text-muted">{{ $reservation->check_out_time ?? '11:00' }}</small>
+                            </div>
                         </div>
+                        
+                        <div class="py-3 border-top border-bottom bg-light-subtle rounded-3 px-2 my-4 text-center">
+                            <h3 class="mb-0 fw-bold">
+                                <span class="text-primary">{{ $reservation->nights_count }}</span>
+                                <span class="small text-muted fw-normal ms-1">NOCHES</span>
+                            </h3>
+                        </div>
+                    @endif
+
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted fw-bold"><i class="fa-solid fa-user me-1"></i> Adultos</span>
+                        <span class="fw-bold">{{ $reservation->adults_count }}</span>
                     </div>
-                    
-                    <div class="py-3 border-top border-bottom bg-light-subtle rounded-3 px-2 my-4 text-center">
-                        <h3 class="mb-0 fw-bold">
-                            <span class="text-primary">{{ $reservation->nights_count }}</span>
-                            <span class="small text-muted fw-normal ms-1">NOCHES</span>
-                        </h3>
-                        <div class="small text-muted mt-1">
-                            <i class="fa-solid fa-user me-1"></i> {{ $reservation->adults_count }} Adultos
-                            @if($reservation->children_count > 0) · <i class="fa-solid fa-child me-1"></i> {{ $reservation->children_count }} Niños @endif
-                        </div>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted fw-bold"><i class="fa-solid fa-child me-1"></i> Niños</span>
+                        <span class="fw-bold">{{ $reservation->children_count ?? 0 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 small border-top pt-2">
+                        <span class="text-muted fw-bold"><i class="fa-solid fa-sack-dollar me-1"></i> Forma de Cobro</span>
+                        <span class="badge bg-light text-dark border fw-bold">{{ $reservation->pricing_type?->label() ?? 'Por Alojamiento' }}</span>
                     </div>
 
                     <hr class="my-4 border-2">
@@ -363,7 +427,7 @@
                     <!-- Desglose Financiero -->
                     <h5 class="fw-bold mt-2 mb-3">Resumen de Factura</h5>
                     <div class="d-flex justify-content-between mb-2 small lh-lg">
-                        <span class="text-muted">Subtotal Alojamiento ({{ $reservation->nights_count }} noches)</span>
+                        <span class="text-muted">{{ $reservation->is_day_pass ? 'Tarifa Pasadía' : 'Subtotal Alojamiento (' . $reservation->nights_count . ' noches)' }}</span>
                         <span class="fw-semibold">${{ number_format($reservation->nightly_subtotal, 2) }}</span>
                     </div>
                     @if($reservation->services_total > 0)
@@ -398,27 +462,74 @@
                     @endif
 
                     <!-- Total -->
+                    @php
+                        $hasConfirmedDeposit = $reservation->confirmedPayments()
+                            ->where('type', 'deposit')
+                            ->exists();
+                        $confirmedTotal = $reservation->confirmedPayments()->sum('amount');
+                        $outstandingBalance = max(0, $reservation->total_amount - $confirmedTotal);
+                    @endphp
                     <div class="p-4 bg-primary text-white rounded-4 mt-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="small opacity-75">TOTAL ESTANCIA</span>
                             <span class="fs-3 fw-bold">${{ number_format($reservation->total_amount, 0) }}</span>
                         </div>
                         <hr class="my-3 border-white border-opacity-25">
+
+                        {{-- Estado del depósito --}}
+                        <div class="d-flex justify-content-between align-items-center mb-2 small">
+                            <span class="opacity-75"><i class="fa-solid fa-hand-holding-dollar me-1"></i> Depósito</span>
+                            @if($hasConfirmedDeposit)
+                                <span class="badge bg-success rounded-pill"><i class="fa-solid fa-check me-1"></i> Registrado</span>
+                            @else
+                                <span class="badge bg-warning text-dark rounded-pill"><i class="fa-solid fa-clock me-1"></i> Pendiente</span>
+                            @endif
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mb-1 small opacity-75">
                             <span><i class="fa-solid fa-money-bill-wave me-1"></i> Pagos Confirmados</span>
-                            <span class="fw-bold text-success">
-                                ${{ number_format($reservation->confirmedPayments()->sum('amount'), 0) }}
-                            </span>
+                            <span class="fw-bold text-success">${{ number_format($confirmedTotal, 0) }}</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center p-3 bg-white bg-opacity-10 rounded-3 mt-2 border border-white border-opacity-25">
                             <span class="fw-bold small">SALDO PENDIENTE</span>
-                            <span class="fs-5 fw-bold">${{ number_format($reservation->outstanding_balance, 0) }}</span>
+                            <span class="fs-5 fw-bold">${{ number_format($outstandingBalance, 0) }}</span>
                         </div>
-                        @if($reservation->outstanding_balance > 0 && !in_array($status, ['cancelled', 'no_show']))
+
+                        {{-- Botón contextual de pago --}}
+                        @if($outstandingBalance > 0 && !in_array($status, ['cancelled', 'no_show', 'checked_out']))
                             <div class="d-grid mt-3">
-                                <a href="{{ route('payments.create', ['reservation_id' => $reservation->id, 'guest_id' => $reservation->primary_guest_id, 'amount' => $reservation->outstanding_balance]) }}" class="btn btn-light text-primary fw-bold rounded-3 py-2">
-                                    <i class="fa-solid fa-plus me-1"></i> Registrar Pago
-                                </a>
+                                @if(!$hasConfirmedDeposit)
+                                    {{-- Aún no hay depósito confirmado --}}
+                                    @php
+                                        $depositAmount = $reservation->deposit_required ?? round($reservation->total_amount * 0.5, 2);
+                                    @endphp
+                                    <a href="{{ route('payments.create', [
+                                            'reservation_id' => $reservation->id,
+                                            'guest_id'       => $reservation->primary_guest_id,
+                                            'payment_type'   => 'deposit',
+                                        ]) }}"
+                                        class="btn btn-warning text-dark fw-bold rounded-3 py-2">
+                                        <i class="fa-solid fa-hand-holding-dollar me-1"></i> Registrar Depósito
+                                        <small class="d-block opacity-75 fw-normal">(Requerido para confirmar)</small>
+                                    </a>
+                                @else
+                                    {{-- Ya hay depósito, registrar saldo restante --}}
+                                    <a href="{{ route('payments.create', [
+                                            'reservation_id' => $reservation->id,
+                                            'guest_id'       => $reservation->primary_guest_id,
+                                            'payment_type'   => 'payment',
+                                        ]) }}"
+                                        class="btn btn-light text-primary fw-bold rounded-3 py-2">
+                                        <i class="fa-solid fa-plus me-1"></i> Registrar Pago Restante
+                                        <small class="d-block opacity-75 fw-normal">${{ number_format($outstandingBalance, 0) }} pendiente</small>
+                                    </a>
+                                @endif
+                            </div>
+                        @elseif($outstandingBalance <= 0 && !in_array($status, ['cancelled', 'no_show']))
+                            <div class="mt-3 text-center">
+                                <span class="badge bg-success rounded-pill px-3 py-2">
+                                    <i class="fa-solid fa-circle-check me-1"></i> Pagado Completamente
+                                </span>
                             </div>
                         @endif
                     </div>
@@ -466,4 +577,79 @@
 <style>
     .shadow-soft { box-shadow: 0 10px 25px rgba(0,0,0,0.03); }
 </style>
+
+<!-- Modal Enviar por Correo -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('reservations.sendEmail', $reservation) }}" method="POST">
+            @csrf
+            <div class="modal-content rounded-4 border-0">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="emailModalLabel">
+                        <i class="fa-solid fa-envelope me-2 text-primary"></i> Enviar Comprobante por Correo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Destinatario</label>
+                        <div class="d-flex flex-column gap-2">
+                            @if($reservation->primaryGuest?->email)
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="email_recipient_type" id="resRecipientRegistered" value="registered" checked onchange="toggleResCustomEmail(this)">
+                                <label class="form-check-label" for="resRecipientRegistered">
+                                    Correo registrado: <strong>{{ $reservation->primaryGuest->email }}</strong>
+                                </label>
+                            </div>
+                            @endif
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="email_recipient_type" id="resRecipientCustom" value="custom" {{ !$reservation->primaryGuest?->email ? 'checked' : '' }} onchange="toggleResCustomEmail(this)">
+                                <label class="form-check-label" for="resRecipientCustom">Otro correo electrónico</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="resCustomEmailField" style="{{ $reservation->primaryGuest?->email ? 'display:none' : '' }}">
+                        <label for="res_custom_email" class="form-label fw-semibold small">Correo Electrónico</label>
+                        <input type="email" name="custom_email" id="res_custom_email" class="form-control rounded-3" placeholder="ejemplo@correo.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="res_custom_message" class="form-label fw-semibold small">Mensaje personalizado <span class="text-muted">(opcional)</span></label>
+                        <textarea name="custom_message" id="res_custom_message" class="form-control rounded-3" rows="3" placeholder="Agrega una nota o mensaje para el cliente..."></textarea>
+                    </div>
+                    <div class="alert alert-info rounded-3 border-0 small">
+                        <i class="fa-solid fa-paperclip me-1"></i> Se adjuntará el PDF del comprobante de reserva al correo.
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="fa-solid fa-paper-plane me-2"></i> Enviar Comprobante
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleResCustomEmail(radio) {
+    const field = document.getElementById('resCustomEmailField');
+    if (radio.value === 'custom') {
+        field.style.display = 'block';
+        document.getElementById('res_custom_email').required = true;
+    } else {
+        field.style.display = 'none';
+        document.getElementById('res_custom_email').required = false;
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const registered = document.getElementById('resRecipientRegistered');
+    if (!registered) {
+        const field = document.getElementById('resCustomEmailField');
+        if (field) field.style.display = 'block';
+        const emailInput = document.getElementById('res_custom_email');
+        if (emailInput) emailInput.required = true;
+    }
+});
+</script>
 @endsection

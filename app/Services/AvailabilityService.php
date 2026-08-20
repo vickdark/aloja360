@@ -27,9 +27,21 @@ class AvailabilityService
                 $query->where('id', '!=', $excludeId);
             })
             ->where(function (Builder $query) use ($checkInDate, $checkOutDate) {
-                // Lógica de solapamiento: new_check_in < existing_check_out AND new_check_out > existing_check_in
-                $query->where('check_in_date', '<', $checkOutDate)
-                      ->where('check_out_date', '>', $checkInDate);
+                if ($checkInDate === $checkOutDate) {
+                    // Si es pasadía, se solapa con cualquier reserva activa que toque esa fecha
+                    $query->whereDate('check_in_date', '<=', $checkInDate)
+                          ->whereDate('check_out_date', '>=', $checkInDate);
+                } else {
+                    // Si es reserva nocturna, se solapa si coincide el rango nocturno o si existe un pasadía dentro del rango
+                    $query->where(function (Builder $standard) use ($checkInDate, $checkOutDate) {
+                        $standard->whereDate('check_in_date', '<', $checkOutDate)
+                                 ->whereDate('check_out_date', '>', $checkInDate);
+                    })->orWhere(function (Builder $dayPass) use ($checkInDate, $checkOutDate) {
+                        $dayPass->where('is_day_pass', true)
+                                ->whereDate('check_in_date', '>=', $checkInDate)
+                                ->whereDate('check_in_date', '<', $checkOutDate);
+                    });
+                }
             })
             ->exists();
 
@@ -41,9 +53,13 @@ class AvailabilityService
         $hasBlockedPeriod = BlockedPeriod::where('accommodation_id', $accommodationId)
             ->where('is_active', true)
             ->where(function (Builder $query) use ($checkInDate, $checkOutDate) {
-                // Lógica de solapamiento para bloqueos (mismos que reservas)
-                $query->where('start_date', '<', $checkOutDate)
-                      ->where('end_date', '>', $checkInDate);
+                if ($checkInDate === $checkOutDate) {
+                    $query->whereDate('start_date', '<=', $checkInDate)
+                          ->whereDate('end_date', '>=', $checkInDate);
+                } else {
+                    $query->whereDate('start_date', '<', $checkOutDate)
+                          ->whereDate('end_date', '>', $checkInDate);
+                }
             })
             ->exists();
 
@@ -57,9 +73,12 @@ class AvailabilityService
     /**
      * Obtiene todos los alojamientos disponibles para las fechas dadas.
      */
-    public function getAvailableAccommodations(string $checkInDate, string $checkOutDate, ?int $excludeReservationId = null): Collection
+    public function getAvailableAccommodations(string $checkInDate, string $checkOutDate, ?int $excludeReservationId = null, bool $isDayPass = false): Collection
     {
         return Accommodation::where('is_active', true)
+            ->when($isDayPass || $checkInDate === $checkOutDate, function (Builder $q) {
+                $q->where('allows_day_pass', true);
+            })
             ->whereDoesntHave('reservations', function (Builder $query) use ($checkInDate, $checkOutDate, $excludeReservationId) {
                 $query->whereIn('status', [
                     ReservationStatus::Pending->value,
@@ -69,13 +88,33 @@ class AvailabilityService
                 ->when($excludeReservationId, function (Builder $q, $excludeId) {
                     $q->where('id', '!=', $excludeId);
                 })
-                ->where('check_in_date', '<', $checkOutDate)
-                ->where('check_out_date', '>', $checkInDate);
+                ->where(function (Builder $q) use ($checkInDate, $checkOutDate) {
+                    if ($checkInDate === $checkOutDate) {
+                        $q->where('check_in_date', '<=', $checkInDate)
+                          ->where('check_out_date', '>=', $checkInDate);
+                    } else {
+                        $q->where(function (Builder $standard) use ($checkInDate, $checkOutDate) {
+                            $standard->where('check_in_date', '<', $checkOutDate)
+                                     ->where('check_out_date', '>', $checkInDate);
+                        })->orWhere(function (Builder $dayPass) use ($checkInDate, $checkOutDate) {
+                            $dayPass->where('is_day_pass', true)
+                                    ->where('check_in_date', '>=', $checkInDate)
+                                    ->where('check_in_date', '<', $checkOutDate);
+                        });
+                    }
+                });
             })
             ->whereDoesntHave('blockedPeriods', function (Builder $query) use ($checkInDate, $checkOutDate) {
                 $query->where('is_active', true)
-                      ->where('start_date', '<', $checkOutDate)
-                      ->where('end_date', '>', $checkInDate);
+                      ->where(function (Builder $q) use ($checkInDate, $checkOutDate) {
+                          if ($checkInDate === $checkOutDate) {
+                              $q->where('start_date', '<=', $checkInDate)
+                                ->where('end_date', '>=', $checkInDate);
+                          } else {
+                              $q->where('start_date', '<', $checkOutDate)
+                                ->where('end_date', '>', $checkInDate);
+                          }
+                      });
             })
             ->get();
     }

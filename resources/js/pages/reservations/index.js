@@ -48,7 +48,7 @@ export function initReservationsIndex(config) {
                     <div class="small">
                         <div class="d-inline-flex align-items-center text-success fw-semibold mb-1"><i class="fa-solid fa-arrow-right-to-bracket me-1"></i>${ci}</div><br>
                         <div class="d-inline-flex align-items-center text-danger fw-semibold"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i>${co}</div>
-                        <div class="badge bg-light text-dark mt-1 small rounded-pill"><i class="fa-solid fa-moon me-1"></i>${r.nights_count || 0} Noches</div>
+                        <div class="badge bg-light text-dark mt-1 small rounded-pill">${r.is_day_pass ? '<i class="fa-solid fa-sun text-warning me-1"></i>Pasadía (0 Noches)' : `<i class="fa-solid fa-moon me-1"></i>${r.nights_count || 0} Noches`}</div>
                     </div>
                 `);
             }},

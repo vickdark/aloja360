@@ -32,6 +32,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('businesses', BusinessController::class);
 
     // Reservas
+    Route::get('reservations/{reservation}/pdf', [ReservationController::class, 'pdf'])->name('reservations.pdf');
+    Route::post('reservations/{reservation}/send-email', [ReservationController::class, 'sendEmail'])->name('reservations.sendEmail');
     Route::post('reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
     Route::post('reservations/{reservation}/check-in', [ReservationController::class, 'checkIn'])->name('reservations.checkIn');
     Route::post('reservations/{reservation}/check-out', [ReservationController::class, 'checkOut'])->name('reservations.checkOut');
@@ -84,6 +86,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('expense_categories', \App\Http\Controllers\ExpenseCategoryController::class);
 
     // Cotizaciones
+    Route::get('quotes/{quote}/pdf', [\App\Http\Controllers\QuoteController::class, 'pdf'])->name('quotes.pdf');
+    Route::post('quotes/{quote}/send-email', [\App\Http\Controllers\QuoteController::class, 'sendEmail'])->name('quotes.sendEmail');
     Route::post('quotes/{quote}/convert', [\App\Http\Controllers\QuoteController::class, 'convertToReservation'])->name('quotes.convert');
     Route::resource('quotes', \App\Http\Controllers\QuoteController::class);
 

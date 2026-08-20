@@ -26,11 +26,26 @@ class PricingService
         string $checkInDate,
         string $checkOutDate,
         int $guestsCount,
-        PricingType|string|null $pricingType = null
+        PricingType|string|null $pricingType = null,
+        bool $isDayPass = false
     ): float {
         $accommodation = Accommodation::findOrFail($accommodationId);
-        $resolvedType = $this->resolvePricingType($pricingType, $accommodation);
+        $isDayPass = $isDayPass || ($checkInDate === $checkOutDate);
 
+        if ($isDayPass) {
+            $resolvedType = $this->resolvePricingType($pricingType ?? $accommodation->day_pass_pricing_type, $accommodation);
+            $basePrice = floatval($accommodation->day_pass_base_price ?? $accommodation->base_price ?? 0);
+            $pricePerPerson = floatval($accommodation->day_pass_price_per_person ?? $accommodation->price_per_person ?? 0);
+            $guestsCount = max($guestsCount, 1);
+
+            if ($resolvedType === PricingType::PerPerson) {
+                return round($pricePerPerson * $guestsCount, 2);
+            }
+
+            return round($basePrice, 2);
+        }
+
+        $resolvedType = $this->resolvePricingType($pricingType, $accommodation);
         $checkIn = Carbon::parse($checkInDate);
         $checkOut = Carbon::parse($checkOutDate);
 
@@ -80,11 +95,32 @@ class PricingService
         string $checkInDate,
         string $checkOutDate,
         int $guestsCount,
-        PricingType|string|null $pricingType = null
+        PricingType|string|null $pricingType = null,
+        bool $isDayPass = false
     ): array {
         $accommodation = Accommodation::findOrFail($accommodationId);
-        $resolvedType = $this->resolvePricingType($pricingType, $accommodation);
+        $isDayPass = $isDayPass || ($checkInDate === $checkOutDate);
 
+        if ($isDayPass) {
+            $resolvedType = $this->resolvePricingType($pricingType ?? $accommodation->day_pass_pricing_type, $accommodation);
+            $basePrice = floatval($accommodation->day_pass_base_price ?? $accommodation->base_price ?? 0);
+            $pricePerPerson = floatval($accommodation->day_pass_price_per_person ?? $accommodation->price_per_person ?? 0);
+            $guestsCount = max($guestsCount, 1);
+            $appliedPrice = ($resolvedType === PricingType::PerPerson) ? ($pricePerPerson * $guestsCount) : $basePrice;
+
+            return [
+                'is_day_pass' => true,
+                'pricing_type' => $resolvedType->value,
+                'day_pass_base_price' => $basePrice,
+                'day_pass_price_per_person' => $pricePerPerson,
+                'guests_count' => $guestsCount,
+                'nights' => [],
+                'day_pass_date' => $checkInDate,
+                'applied_price' => round($appliedPrice, 2),
+            ];
+        }
+
+        $resolvedType = $this->resolvePricingType($pricingType, $accommodation);
         $checkIn = Carbon::parse($checkInDate);
         $checkOut = Carbon::parse($checkOutDate);
         $period = CarbonPeriod::create($checkIn, $checkOut->copy()->subDay());
@@ -105,6 +141,7 @@ class PricingService
             ->get();
 
         $snapshot = [
+            'is_day_pass' => false,
             'pricing_type' => $resolvedType->value,
             'base_price' => $basePrice,
             'price_per_person' => $pricePerPerson,
@@ -142,6 +179,7 @@ class PricingService
      * @param \DateTimeInterface|string $checkOut
      * @param int $guestsCount
      * @param PricingType|string|null $pricingType
+     * @param bool $isDayPass
      * @return array{subtotal: float, snapshot: array, nights: int, pricing_type: string}
      */
     public function calculateStayTotal(
@@ -149,16 +187,15 @@ class PricingService
         \DateTimeInterface|string $checkIn,
         \DateTimeInterface|string $checkOut,
         int $guestsCount,
-        PricingType|string|null $pricingType = null
+        PricingType|string|null $pricingType = null,
+        bool $isDayPass = false
     ): array {
         $checkIn = Carbon::parse($checkIn);
         $checkOut = Carbon::parse($checkOut);
-        $resolvedType = $this->resolvePricingType($pricingType, $accommodation);
+        $isDayPass = $isDayPass || ($checkIn->toDateString() === $checkOut->toDateString());
+        $resolvedType = $this->resolvePricingType($pricingType ?? ($isDayPass ? $accommodation->day_pass_pricing_type : null), $accommodation);
 
-        $nights = $checkIn->diffInDays($checkOut);
-
-        $baseCapacity = $accommodation->base_capacity ?? ($accommodation->max_guests ?? 1);
-        $basePrice = $accommodation->base_price ?? 0;
+        $nights = $isDayPass ? 0 : $checkIn->diffInDays($checkOut);
 
         try {
             $subtotal = $this->calculateNightlySubtotal(
@@ -166,7 +203,8 @@ class PricingService
                 $checkIn->toDateString(),
                 $checkOut->toDateString(),
                 $guestsCount,
-                $resolvedType
+                $resolvedType,
+                $isDayPass
             );
 
             $snapshot = $this->generateRateSnapshot(
@@ -174,23 +212,33 @@ class PricingService
                 $checkIn->toDateString(),
                 $checkOut->toDateString(),
                 $guestsCount,
-                $resolvedType
+                $resolvedType,
+                $isDayPass
             );
         } catch (\Exception $e) {
             // Fallback: cálculo directo sin RatePeriods
-            if ($resolvedType === PricingType::PerPerson) {
-                $perPerson = floatval($accommodation->price_per_person ?? 0);
-                $perNight = max($perPerson, 0) * max($guestsCount, 1);
+            if ($isDayPass) {
+                if ($resolvedType === PricingType::PerPerson) {
+                    $perPerson = floatval($accommodation->day_pass_price_per_person ?? $accommodation->price_per_person ?? 0);
+                    $subtotal = max($perPerson, 0) * max($guestsCount, 1);
+                } else {
+                    $subtotal = floatval($accommodation->day_pass_base_price ?? $accommodation->base_price ?? 0);
+                }
             } else {
-                $perNight = floatval($basePrice);
+                if ($resolvedType === PricingType::PerPerson) {
+                    $perPerson = floatval($accommodation->price_per_person ?? 0);
+                    $perNight = max($perPerson, 0) * max($guestsCount, 1);
+                } else {
+                    $perNight = floatval($accommodation->base_price ?? 0);
+                }
+                $subtotal = $perNight * max($nights, 0);
             }
-            $subtotal = $perNight * max($nights, 0);
+
             $snapshot = [
+                'is_day_pass' => $isDayPass,
                 'fallback_calculation' => true,
                 'error' => $e->getMessage(),
                 'pricing_type' => $resolvedType->value,
-                'base_price' => $basePrice,
-                'price_per_person' => $accommodation->price_per_person ?? 0,
                 'guests_count' => $guestsCount,
                 'nights' => $nights,
                 'manual' => true,

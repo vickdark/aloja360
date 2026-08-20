@@ -20,29 +20,65 @@ class PaymentController extends Controller
     {
         $this->authorize('viewAny', Payment::class);
 
+        $query = Payment::with(['reservation.confirmedPayments', 'reservation.primaryGuest', 'guest']);
+
+        if ($search = $request->get('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('reference', 'like', "%{$search}%")
+                  ->orWhereHas('reservation', function($rq) use ($search) {
+                      $rq->where('code', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('guest', function($gq) use ($search) {
+                      $gq->where('first_name', 'like', "%{$search}%")
+                         ->orWhere('last_name', 'like', "%{$search}%")
+                         ->orWhere('document_number', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($type = $request->get('type')) {
+            $query->where('type', $type);
+        }
+
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+
         if ($request->ajax() || $request->wantsJson()) {
-            $query = Payment::with(['reservation', 'guest']);
-            $limit = $request->get('limit', 10);
+            $limit = $request->get('limit', 15);
             $offset = $request->get('offset', 0);
-            $search = $request->get('search');
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('code', 'like', "%{$search}%")
-                      ->orWhereHas('reservation', function($rq) use ($search) {
-                          $rq->where('code', 'like', "%{$search}%");
-                      })
-                      ->orWhereHas('guest', function($gq) use ($search) {
-                          $gq->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%");
-                      });
-                });
-            }
             $total = $query->count();
-            $payments = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+            $payments = $query->orderBy('reservation_id', 'desc')->orderBy('payment_date', 'asc')->offset($offset)->limit($limit)->get();
+            
+            $payments->each(function($p) {
+                if ($p->reservation) {
+                    $p->reservation->append('outstanding_balance');
+                }
+            });
+
             return response()->json(['data' => $payments, 'total' => (int)$total]);
         }
 
-        return view('payments.index');
+        $payments = $query->orderBy('reservation_id', 'desc')->orderBy('payment_date', 'asc')->paginate(20)->withQueryString();
+
+        // Agrupar pagos por reserva para renderizado con divisores claros
+        $groupedPayments = $payments->getCollection()->groupBy(function($item) {
+            return $item->reservation_id ? 'res_' . $item->reservation_id : 'sin_reserva';
+        });
+
+        // Contadores KPI
+        $stats = [
+            'total_amount'     => Payment::where('status', 'confirmed')->whereIn('type', ['payment', 'deposit'])->sum('amount'),
+            'confirmed_count'  => Payment::where('status', 'confirmed')->count(),
+            'pending_count'    => Payment::where('status', 'pending')->count(),
+            'deposits_count'   => Payment::where('type', 'deposit')->count(),
+        ];
+
+        return view('payments.index', compact('payments', 'groupedPayments', 'stats'));
     }
+
+
 
     public function create(Request $request)
     {
@@ -51,11 +87,48 @@ class PaymentController extends Controller
         $guests = Guest::orderBy('first_name')->get();
         
         $selectedReservation = null;
+        $reservationPayments = collect();
+        $suggestedType       = $request->get('payment_type', 'payment'); // deposit | payment
+        $suggestedAmount     = null;
+
         if ($request->filled('reservation_id')) {
-            $selectedReservation = Reservation::with('primaryGuest')->find($request->get('reservation_id'));
+            $selectedReservation = Reservation::with(['primaryGuest', 'payments.guest'])->find($request->get('reservation_id'));
+
+            if ($selectedReservation) {
+                // Pagos ya confirmados de esta reserva
+                $reservationPayments = $selectedReservation->payments()
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->orderBy('payment_date')
+                    ->get();
+
+                $confirmedPaymentsTotal = $selectedReservation->confirmedPayments()
+                    ->whereIn('type', ['payment', 'deposit'])
+                    ->sum('amount');
+
+                $hasDeposit = $selectedReservation->confirmedPayments()
+                    ->where('type', 'deposit')
+                    ->exists();
+
+                // Sugerir tipo según si ya hay depósito o no
+                if (!$request->filled('payment_type')) {
+                    $suggestedType = $hasDeposit ? 'payment' : 'deposit';
+                }
+
+                // Sugerir monto: si no hay depósito, sugerir deposit_required o 50% del total
+                if ($suggestedType === 'deposit') {
+                    $suggestedAmount = $selectedReservation->deposit_required
+                        ?? round($selectedReservation->total_amount * 0.5, 2);
+                } else {
+                    // Saldo pendiente (outstanding_balance)
+                    $suggestedAmount = max(0, $selectedReservation->total_amount - $confirmedPaymentsTotal);
+                }
+            }
         }
 
-        return view('payments.create', compact('reservations', 'guests', 'selectedReservation'));
+        return view('payments.create', compact(
+            'reservations', 'guests', 'selectedReservation',
+            'reservationPayments', 'suggestedType', 'suggestedAmount'
+        ));
     }
 
     public function store(StorePaymentRequest $request, ConfirmReservationAction $confirmAction)
@@ -101,8 +174,19 @@ class PaymentController extends Controller
     public function show(Payment $payment)
     {
         $this->authorize('view', $payment);
-        return view('payments.show', compact('payment'));
+        $payment->load(['reservation.payments.guest', 'guest', 'createdBy', 'confirmedBy']);
+
+        $relatedPayments = collect();
+        if ($payment->reservation) {
+            $relatedPayments = $payment->reservation->payments()
+                ->where('id', '!=', $payment->id)
+                ->orderBy('payment_date', 'asc')
+                ->get();
+        }
+
+        return view('payments.show', compact('payment', 'relatedPayments'));
     }
+
 
     public function edit(Payment $payment)
     {

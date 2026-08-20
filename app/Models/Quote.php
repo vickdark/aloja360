@@ -18,6 +18,7 @@ class Quote extends Model
         'status',
         'accommodation_id',
         'pricing_type',
+        'is_day_pass',
         'guest_id',
         'check_in_date',
         'check_out_date',
@@ -47,6 +48,7 @@ class Quote extends Model
         return [
             'status' => QuoteStatus::class,
             'pricing_type' => PricingType::class,
+            'is_day_pass' => 'boolean',
             'check_in_date' => 'date',
             'check_out_date' => 'date',
             'nightly_subtotal' => 'decimal:2',

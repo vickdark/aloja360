@@ -205,13 +205,9 @@
                                             @if($image->caption)
                                                 <div class="image-caption-display">{{ $image->caption }}</div>
                                             @endif
-                                            <form action="{{ route('accommodations.destroyImage', [$accommodation, $image]) }}" method="POST" onsubmit="return confirm('¿Eliminar esta imagen?');" class="image-remove-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="image-remove-btn">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            <button type="submit" form="delete-image-form-{{ $image->id }}" class="image-remove-btn" onclick="return confirm('¿Eliminar esta imagen?');">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 @endforeach
@@ -244,11 +240,11 @@
                 <div class="card border-0 shadow-soft rounded-4 bg-gradient-to-br from-primary to-primary-dark mb-4 text-white" style="background: linear-gradient(135deg, var(--bs-primary) 0%, #8a3d12 100%);">
                     <div class="card-body p-4">
                         <h4 class="mb-4 fw-bold d-flex align-items-center">
-                            <i class="fa-solid fa-tags me-2"></i> Tarifas
+                            <i class="fa-solid fa-tags me-2"></i> Tarifas de Hospedaje (Noches)
                         </h4>
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-white-50">Modelo de Cobro</label>
+                            <label class="form-label small fw-bold text-white-50">Modelo de Cobro Sugerido</label>
                             <select name="pricing_type" id="pricing_type" class="form-select bg-white bg-opacity-10 border-0 text-white @error('pricing_type') is-invalid @enderror" required style="background-image: none;">
                                 @foreach(App\Enums\PricingType::cases() as $case)
                                     <option value="{{ $case->value }}" {{ old('pricing_type', optional($accommodation->pricing_type)->value ?? App\Enums\PricingType::PerAccommodation->value) == $case->value ? 'selected' : '' }} class="text-dark">
@@ -257,29 +253,29 @@
                                 @endforeach
                             </select>
                             <div class="form-text text-white-50 small mt-1">
-                                Por alojamiento = tarifa fija. Por persona = tarifa variable.
+                                Se seleccionará por defecto en cotizaciones y reservas.
                             </div>
                             @error('pricing_type') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
 
-                        <div id="price_per_person_group" class="mb-3" style="display:none;">
-                            <label class="form-label small fw-bold text-white-50">Precio Persona / Noche</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
-                                <input type="number" step="100" min="0" name="price_per_person" id="price_per_person" value="{{ old('price_per_person', $accommodation->price_per_person ?? 0) }}" class="form-control bg-white bg-opacity-10 border-0 text-white">
-                            </div>
-                            <div class="form-text text-white-50 small mt-1">
-                                Precio base noche por persona. RatePeriod puede sobreescribirlo.
-                            </div>
-                        </div>
-
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-white-50">Precio Base (por noche)</label>
+                            <label class="form-label small fw-bold text-white-50">Precio por Alojamiento Completo (por noche)</label>
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
                                 <input type="number" step="100" min="0" name="base_price" id="base_price" value="{{ old('base_price', $accommodation->base_price) }}" class="form-control bg-white bg-opacity-10 border-0 text-white @error('base_price') is-invalid @enderror" placeholder="0" required>
                             </div>
                             @error('base_price') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-3" id="price_per_person_group">
+                            <label class="form-label small fw-bold text-white-50">Precio por Persona (por noche)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">$</span>
+                                <input type="number" step="100" min="0" name="price_per_person" id="price_per_person" value="{{ old('price_per_person', $accommodation->price_per_person ?? 0) }}" class="form-control bg-white bg-opacity-10 border-0 text-white">
+                            </div>
+                            <div class="form-text text-white-50 small mt-1">
+                                Tarifa a cobrar por persona si se elige esta modalidad.
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -303,6 +299,59 @@
                             <div class="input-group">
                                 <input type="number" step="0.01" min="0" name="weekend_price_modifier" id="weekend_price_modifier" value="{{ old('weekend_price_modifier', $accommodation->weekend_price_modifier) }}" class="form-control bg-white bg-opacity-10 border-0 text-white" placeholder="1.20 = +20%">
                                 <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Pasadías -->
+                <div class="card border-0 shadow-soft rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center">
+                                <i class="fa-solid fa-sun text-warning me-2"></i> Pasadías (Uso Diurno)
+                            </h5>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" name="allows_day_pass" value="1" id="allows_day_pass" {{ old('allows_day_pass', $accommodation->allows_day_pass) ? 'checked' : '' }}>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-3">Permite alquiler por el día (sin pernoctar).</p>
+
+                        <div id="day_pass_config_panel" style="display: none;" class="pt-3 border-top">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Aforo Máximo Pasadía</label>
+                                <input type="number" min="1" name="day_pass_max_guests" id="day_pass_max_guests" value="{{ old('day_pass_max_guests', $accommodation->day_pass_max_guests ?? 10) }}" class="form-control" placeholder="10">
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-muted">Check-in</label>
+                                    <input type="time" name="day_pass_check_in_time" id="day_pass_check_in_time" value="{{ old('day_pass_check_in_time', $accommodation->day_pass_check_in_time ?? '08:00') }}" class="form-control">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-muted">Check-out</label>
+                                    <input type="time" name="day_pass_check_out_time" id="day_pass_check_out_time" value="{{ old('day_pass_check_out_time', $accommodation->day_pass_check_out_time ?? '17:00') }}" class="form-control">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Modelo de Cobro Sugerido Pasadía</label>
+                                <select name="day_pass_pricing_type" id="day_pass_pricing_type" class="form-select">
+                                    <option value="per_accommodation" {{ old('day_pass_pricing_type', $accommodation->day_pass_pricing_type->value ?? 'per_accommodation') == 'per_accommodation' ? 'selected' : '' }}>Tarifa Plana (Por Alojamiento)</option>
+                                    <option value="per_person" {{ old('day_pass_pricing_type', $accommodation->day_pass_pricing_type->value ?? '') == 'per_person' ? 'selected' : '' }}>Tarifa por Persona</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Precio Pasadía Alojamiento Completo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="100" min="0" name="day_pass_base_price" id="day_pass_base_price" value="{{ old('day_pass_base_price', $accommodation->day_pass_base_price ?? 0) }}" class="form-control">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Precio Pasadía por Persona</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="100" min="0" name="day_pass_price_per_person" id="day_pass_price_per_person" value="{{ old('day_pass_price_per_person', $accommodation->day_pass_price_per_person ?? 0) }}" class="form-control">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -334,6 +383,15 @@
             </div>
         </div>
     </form>
+
+    @if($accommodation->images->count() > 0)
+        @foreach($accommodation->images as $image)
+            <form id="delete-image-form-{{ $image->id }}" action="{{ route('accommodations.destroyImage', [$accommodation, $image]) }}" method="POST" class="d-none">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endforeach
+    @endif
 </div>
 
 <style>
@@ -489,23 +547,17 @@
 
 <script>
 (function() {
-    const pricingTypeSel = document.getElementById('pricing_type');
-    const perPersonGroup = document.getElementById('price_per_person_group');
-    const pricePerPersonInput = document.getElementById('price_per_person');
-    const basePriceGroup = document.getElementById('base_price').closest('.mb-3');
+    // === Day Pass Toggle ===
+    const allowsDayPassCheck = document.getElementById('allows_day_pass');
+    const dayPassPanel = document.getElementById('day_pass_config_panel');
 
-    function togglePricingFields() {
-        const isPerPerson = pricingTypeSel.value === '{{ App\Enums\PricingType::PerPerson->value }}';
-        perPersonGroup.style.display = isPerPerson ? 'block' : 'none';
-        if (isPerPerson) {
-            pricePerPersonInput.setAttribute('required', 'required');
-        } else {
-            pricePerPersonInput.removeAttribute('required');
-        }
+    function toggleDayPassFields() {
+        if (!allowsDayPassCheck || !dayPassPanel) return;
+        dayPassPanel.style.display = allowsDayPassCheck.checked ? 'block' : 'none';
     }
 
-    pricingTypeSel.addEventListener('change', togglePricingFields);
-    togglePricingFields();
+    if (allowsDayPassCheck) allowsDayPassCheck.addEventListener('change', toggleDayPassFields);
+    toggleDayPassFields();
 
     // === Image Upload ===
     const dropzone = document.getElementById('dropzone');

@@ -19,9 +19,10 @@ class StoreQuoteRequest extends FormRequest
         return [
             'accommodation_id' => 'required|exists:accommodations,id',
             'pricing_type' => ['nullable', new Enum(PricingType::class)],
+            'is_day_pass' => ['nullable', 'boolean'],
             'guest_id' => 'required|exists:guests,id',
             'check_in_date' => 'required|date|after:today',
-            'check_out_date' => 'required|date|after:check_in_date',
+            'check_out_date' => 'required|date|after_or_equal:check_in_date',
             'adults_count' => 'required|integer|min:1',
             'children_count' => 'nullable|integer|min:0',
             'cleaning_fee' => 'nullable|numeric|min:0',

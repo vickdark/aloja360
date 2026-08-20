@@ -24,6 +24,7 @@ class UpdateReservationRequest extends FormRequest
         return [
             'accommodation_id' => ['sometimes', 'required', 'integer', 'exists:accommodations,id'],
             'pricing_type' => ['nullable', new Enum(PricingType::class)],
+            'is_day_pass' => ['nullable', 'boolean'],
             'primary_guest_id' => ['sometimes', 'required', 'integer', 'exists:guests,id'],
             'guests_count' => ['sometimes', 'required', 'integer', 'min:1'],
             'adults_count' => ['sometimes', 'required', 'integer', 'min:1'],

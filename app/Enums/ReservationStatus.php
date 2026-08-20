@@ -32,8 +32,21 @@ enum ReservationStatus: string
         };
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::Pending => 'warning',
+            self::Confirmed => 'success',
+            self::CheckedIn => 'primary',
+            self::CheckedOut => 'info',
+            self::Cancelled => 'danger',
+            self::NoShow => 'secondary',
+        };
+    }
+
     public function canBeDeleted(): bool
     {
         return $this === self::Pending;
     }
+
 }

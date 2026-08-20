@@ -55,16 +55,16 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient-to-br text-white" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <div class="card border-0 shadow-sm rounded-4 mb-4 text-white bg-primary">
                     <div class="card-body p-4">
-                        <h4 class="mb-3 fw-bold d-flex align-items-center">
-                            <i class="fa-solid fa-icons me-2"></i> Iconografía
-                        </h4>
+                        <h5 class="mb-3 fw-bold text-white d-flex align-items-center">
+                            <i class="fa-solid fa-icons me-2"></i> Iconografía Font Awesome
+                        </h5>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-white-50">Nombre del icono</label>
+                            <label class="form-label small fw-bold text-white text-opacity-75">Nombre o clase del icono</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-white bg-opacity-20 border-0 text-white">
+                                <span class="input-group-text bg-white bg-opacity-25 border-0 text-white">
                                     <i class="fa-solid fa-magnifying-glass"></i>
                                 </span>
                                 <input
@@ -72,8 +72,8 @@
                                     name="icon"
                                     id="icon"
                                     value="{{ old('icon', 'check') }}"
-                                    class="form-control bg-white bg-opacity-10 border-0 text-white"
-                                    placeholder="Busca y escribe el nombre del icono…"
+                                    class="form-control bg-white text-dark border-0 fw-semibold"
+                                    placeholder="Ej: wifi, bed, tv..."
                                     autocomplete="off"
                                 >
                             </div>
@@ -81,35 +81,36 @@
                             <a href="https://fontawesome.com/search?m=free&o=r"
                                target="_blank"
                                rel="noopener noreferrer"
-                               class="d-inline-flex align-items-center gap-2 text-white small mt-2"
-                               style="text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;">
+                               class="d-inline-flex align-items-center gap-2 text-white small mt-2 text-decoration-underline">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                Abrir buscador de iconos Font Awesome (gratis)
+                                Abrir buscador de iconos gratis
                             </a>
 
                             <div class="mt-3 small">
-                                <div class="text-white-50 mb-2">Ejemplos rápidos (haz clic):</div>
+                                <div class="text-white text-opacity-75 mb-2 fw-semibold">Ejemplos rápidos:</div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button type="button" data-icon-example="wifi" class="btn btn-sm btn-outline-light rounded-pill border-opacity-50 px-3 py-1">wifi</button>
-                                    <button type="button" data-icon-example="bed" class="btn btn-sm btn-outline-light rounded-pill border-opacity-50 px-3 py-1">bed</button>
-                                    <button type="button" data-icon-example="mug-hot" class="btn btn-sm btn-outline-light rounded-pill border-opacity-50 px-3 py-1">mug-hot</button>
-                                    <button type="button" data-icon-example="tv" class="btn btn-sm btn-outline-light rounded-pill border-opacity-50 px-3 py-1">tv</button>
-                                    <button type="button" data-icon-example="kitchen-set" class="btn btn-sm btn-outline-light rounded-pill border-opacity-50 px-3 py-1">kitchen</button>
+                                    <button type="button" data-icon-example="wifi" class="btn btn-sm btn-light text-dark rounded-pill px-3 py-1 fw-semibold">wifi</button>
+                                    <button type="button" data-icon-example="bed" class="btn btn-sm btn-light text-dark rounded-pill px-3 py-1 fw-semibold">bed</button>
+                                    <button type="button" data-icon-example="mug-hot" class="btn btn-sm btn-light text-dark rounded-pill px-3 py-1 fw-semibold">mug-hot</button>
+                                    <button type="button" data-icon-example="tv" class="btn btn-sm btn-light text-dark rounded-pill px-3 py-1 fw-semibold">tv</button>
+                                    <button type="button" data-icon-example="kitchen-set" class="btn btn-sm btn-light text-dark rounded-pill px-3 py-1 fw-semibold">kitchen</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="icon-preview mt-4 border border-white border-opacity-25 rounded-4 d-flex flex-column align-items-center justify-content-center bg-white bg-opacity-5 py-4 px-2" style="min-height: 160px;">
-                            <div id="iconPreviewEl" style="min-height: 64px; display:flex; align-items:center; justify-content:center;">
-                                <i class="fa-solid fa-check fa-2xl text-white"></i>
+                        <div class="icon-preview mt-4 rounded-4 d-flex flex-column align-items-center justify-content-center bg-white text-dark p-4 shadow-sm" style="min-height: 160px;">
+                            <div id="iconPreviewEl" class="text-primary mb-2" style="min-height: 64px; display:flex; align-items:center; justify-content:center;">
+                                <i class="fa-solid fa-check fa-3x"></i>
                             </div>
-                            <div class="small text-white-50 mt-3 px-2 text-center w-100 border-top border-white border-opacity-10 pt-3">
-                                <span class="opacity-75">Clase generada:</span>
-                                <div id="iconPreviewText" class="fw-mono user-select-all text-white mt-1 fw-semibold text-break">fa-solid fa-check</div>
+                            <div class="small text-muted mt-2 px-2 text-center w-100 border-top pt-2">
+                                <span class="fw-semibold">Clase resultante:</span>
+                                <div id="iconPreviewText" class="font-monospace text-primary mt-1 fw-bold text-break bg-light p-2 rounded-3 border">fa-solid fa-check</div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+
 
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-body p-4">
@@ -186,13 +187,14 @@
     function renderIcon(cls) {
         previewWrapper.innerHTML = '';
         var i = document.createElement('i');
-        i.className = cls + ' fa-2xl text-white';
+        i.className = cls + ' fa-3x text-primary';
         previewWrapper.appendChild(i);
         // Forzar a FontAwesome 7 (JS) a re-convertir este nuevo nodo a SVG
         if (window.FontAwesome && typeof window.FontAwesome.dom === 'object' && typeof window.FontAwesome.dom.i2svg === 'function') {
             try { window.FontAwesome.dom.i2svg({ node: previewWrapper }); } catch (_) {}
         }
     }
+
 
     function update() {
         var cls = normalize(input.value);

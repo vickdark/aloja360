@@ -27,7 +27,6 @@
                     'expense_categories.index',
                     'business.index',
                     'expenses.index',
-                    'maintenance.index',
                     'businesses.index',
                 ];
 

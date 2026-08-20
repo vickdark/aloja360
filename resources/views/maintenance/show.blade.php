@@ -85,10 +85,17 @@
                             </div>
                             @if($maintenance->actual_cost)
                                 <div class="mt-4 pt-3 border-top border-success-subtle">
-                                    <div class="d-flex justify-content-between">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span class="fw-bold small">COSTO REAL INCURRIDO:</span>
-                                        <span class="fw-bold text-success">${{ number_format($maintenance->actual_cost, 0) }}</span>
+                                        <span class="fw-bold text-success fs-5">${{ number_format($maintenance->actual_cost, 0) }}</span>
                                     </div>
+                                    @if($maintenance->expense_id)
+                                        <div class="text-end">
+                                            <a href="{{ route('expenses.show', $maintenance->expense_id) }}" class="btn btn-sm btn-outline-success rounded-pill">
+                                                <i class="fa-solid fa-receipt me-1"></i> Ver Gasto #{{ $maintenance->expense_id }}
+                                            </a>
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         </div>

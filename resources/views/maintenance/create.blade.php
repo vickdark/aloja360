@@ -73,9 +73,16 @@
                     </div>
                 </div>
 
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="estimated_cost" class="form-label">Costo Estimado ($)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="estimated_cost" name="estimated_cost" placeholder="0.00" value="{{ old('estimated_cost') }}">
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label for="description" class="form-label">Descripción detallada <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    <textarea class="form-control" id="description" name="description" rows="3" required>{{ old('description') }}</textarea>
                 </div>
 
                 <div class="mb-4">

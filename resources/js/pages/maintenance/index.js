@@ -1,7 +1,10 @@
 export function initMaintenanceIndex(config) {
     const { routes, tokens } = config;
 
+    const prioLabels = { low: 'Baja', medium: 'Media', high: 'Alta', critical: 'Crítica' };
     const prioColors = { low:'secondary', medium:'info', high:'warning', critical:'danger' };
+    
+    const statusLabels = { reported: 'Reportado', scheduled: 'Programado', in_progress: 'En progreso', completed: 'Completado', cancelled: 'Cancelado' };
     const statusColors = { reported:'secondary', scheduled:'info', in_progress:'primary', completed:'success', cancelled:'dark' };
 
     const grid = new DataGrid("wrapper", {
@@ -9,29 +12,41 @@ export function initMaintenanceIndex(config) {
         columns: [
             { id: 'accommodation', name: "Alojamiento", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
-                return DataGrid.html(`<span class="fw-bold">${r.accommodation?.name || 'N/A'}</span>`);
+                return DataGrid.html(`<span class="fw-bold">${r.accommodation?.name || 'General / N/A'}</span>`);
             }},
             { id: 'title', name: "Título / Problema", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
-                return DataGrid.html(`<div><div>${r.title || ''}</div><div class="small text-muted">${r.category || ''}</div></div>`);
+                return DataGrid.html(`<div><div class="fw-medium">${r.title || ''}</div><div class="small text-muted">${r.category || ''}</div></div>`);
             }},
             { id: 'priority', name: "Prioridad", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
-                const p = r.priority?.value || r.priority || 'medium';
+                const p = (typeof r.priority === 'object' && r.priority !== null) ? (r.priority.value || 'medium') : (r.priority || 'medium');
                 const c = prioColors[p] || 'secondary';
-                const label = r.priority?.label ? r.priority.label() : p;
+                const label = prioLabels[p] || p;
                 return DataGrid.html(`<span class="badge bg-${c}">${label}</span>`);
             }},
             { id: 'status', name: "Estado", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
-                const s = r.status?.value || r.status || 'reported';
+                const s = (typeof r.status === 'object' && r.status !== null) ? (r.status.value || 'reported') : (r.status || 'reported');
                 const c = statusColors[s] || 'secondary';
-                const label = r.status?.label ? r.status.label() : s;
+                const label = statusLabels[s] || s;
                 return DataGrid.html(`<span class="badge bg-${c}">${label}</span>`);
+            }},
+            { id: 'cost', name: "Costo Real", formatter: (cell, row) => {
+                const r = row.cells[row.cells.length - 1]?.data || {};
+                const actual = Number(r.actual_cost || 0);
+                const estimated = Number(r.estimated_cost || 0);
+                if (actual > 0) {
+                    return DataGrid.html(`<span class="fw-bold text-success">$${actual.toLocaleString('es-CO')}</span>`);
+                }
+                if (estimated > 0) {
+                    return DataGrid.html(`<span class="text-muted small">Est: $${estimated.toLocaleString('es-CO')}</span>`);
+                }
+                return DataGrid.html(`<span class="text-muted small">-</span>`);
             }},
             { id: 'assigned', name: "Asignado A", formatter: (cell, row) => {
                 const r = row.cells[row.cells.length - 1]?.data || {};
-                const u = r.assignedTo;
+                const u = r.assignedTo || r.assigned_to;
                 const n = u ? (u.name || ((u.first_name || '') + ' ' + (u.last_name || '')).trim()) : 'Sin asignar';
                 return DataGrid.html(`<span>${n}</span>`);
             }},
@@ -54,7 +69,7 @@ export function initMaintenanceIndex(config) {
                 return DataGrid.html(html);
             }}
         ],
-        mapData: (r) => [r, r, r, r, r, r, r]
+        mapData: (r) => [r, r, r, r, r, r, r, r]
     }).render();
 
     if (window.deleteMaintenance === undefined) {

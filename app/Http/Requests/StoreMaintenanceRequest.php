@@ -22,6 +22,8 @@ class StoreMaintenanceRequest extends FormRequest
             'status' => 'required|string',
             'assigned_to' => 'nullable|exists:usuarios,id',
             'scheduled_at' => 'nullable|date',
+            'estimated_cost' => 'nullable|numeric|min:0',
+            'actual_cost' => 'nullable|numeric|min:0',
             'blocks_accommodation' => 'boolean',
         ];
     }

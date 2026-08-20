@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.initMaintenanceIndex({
         routes: {
             index: '{{ route('maintenance.index') }}',
+            show: '{{ route('maintenance.show', ':id') }}',
             edit: '{{ route('maintenance.edit', ':id') }}',
             destroy: '{{ route('maintenance.destroy', ':id') }}'
         },

@@ -222,22 +222,16 @@
                         
                         <div class="alert alert-info bg-info-subtle text-info-info-info border-0 rounded-3 small" role="alert">
                             <i class="fa-solid fa-circle-info me-1"></i> 
-                            Los precios se calculan automáticamente según las fechas, huéspedes y tarifas especiales del alojamiento al guardar.
+                            Los precios se calculan automáticamente según las fechas y huéspedes. Si un cobro o depósito no aplica, puedes dejar el valor en <b>0</b>.
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Tarifa Limpieza <span class="text-muted fst-italic fw-normal">(Auto)</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="cleaning_fee" id="cleaning_fee" value="{{ old('cleaning_fee') }}" min="0" class="form-control">
-                            </div>
-                        </div>
+                        <input type="hidden" name="cleaning_fee" id="cleaning_fee" value="0">
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Depósito Seguridad</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="security_deposit" id="security_deposit" value="{{ old('security_deposit') }}" min="0" class="form-control">
+                                <input type="number" step="100" name="security_deposit" id="security_deposit" value="{{ old('security_deposit', 0) }}" min="0" class="form-control">
                             </div>
                         </div>
 
@@ -318,15 +312,11 @@ document.getElementById('pricing_type').addEventListener('change', function() {
     calculateEstimate();
 });
 
-// Actualizar campos de limpieza y deposito automaticamente al elegir alojamiento
+// Actualizar campo de deposito automaticamente al elegir alojamiento
 document.getElementById('accommodation_id').addEventListener('change', function() {
     const opt = this.options[this.selectedIndex];
-    const cleaning = opt.getAttribute('data-cleaning') || 0;
     const deposit = opt.getAttribute('data-deposit') || 0;
-    
-    if(document.getElementById('cleaning_fee').value == 0) {
-        document.getElementById('cleaning_fee').value = cleaning;
-    }
+
     if(document.getElementById('security_deposit').value == 0) {
         document.getElementById('security_deposit').value = deposit;
     }
@@ -469,7 +459,7 @@ function calculateEstimate() {
         calculateEstimate();
     });
 });
-['cleaning_fee', 'security_deposit', 'discount_total', 'tax_total'].forEach(id => {
+['security_deposit', 'discount_total', 'tax_total'].forEach(id => {
     document.getElementById(id).addEventListener('input', calculateEstimate);
 });
 ['adults_count', 'children_count'].forEach(id => {
@@ -538,10 +528,9 @@ function applyServerEstimate(data) {
     const breakdownEl = document.getElementById('price_breakdown');
     if (!breakdownEl) return;
 
-    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
     const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
     const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
-    document.getElementById('total_preview_text').innerText = fmt(data.subtotal + clean - disc + tax);
+    document.getElementById('total_preview_text').innerText = fmt(data.subtotal - disc + tax);
 
     const snap = data.snapshot || {};
     const lines = [];
@@ -565,7 +554,7 @@ function applyServerEstimate(data) {
     breakdownEl.innerText = lines.join('\n');
 }
 
-['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'cleaning_fee', 'discount_total', 'tax_total'].forEach(id => {
+['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'discount_total', 'tax_total'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('change', triggerServerEstimate);

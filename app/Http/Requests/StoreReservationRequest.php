@@ -18,6 +18,20 @@ class StoreReservationRequest extends FormRequest
     }
 
     /**
+     * Prepare inputs for validation (sanitizing financial fields to 0 when empty).
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'cleaning_fee' => ($this->filled('cleaning_fee') && is_numeric($this->input('cleaning_fee'))) ? $this->input('cleaning_fee') : 0,
+            'security_deposit' => ($this->filled('security_deposit') && is_numeric($this->input('security_deposit'))) ? $this->input('security_deposit') : 0,
+            'discount_total' => ($this->filled('discount_total') && is_numeric($this->input('discount_total'))) ? $this->input('discount_total') : 0,
+            'tax_total' => ($this->filled('tax_total') && is_numeric($this->input('tax_total'))) ? $this->input('tax_total') : 0,
+            'children_count' => ($this->filled('children_count') && is_numeric($this->input('children_count'))) ? (int)$this->input('children_count') : 0,
+        ]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array

@@ -142,13 +142,17 @@
                             
                             <input type="hidden" name="guests_count" id="guests_count_hidden">
 
+                            @php
+                                $currentStatusVal = is_object($reservation->status) ? $reservation->status->value : (string)$reservation->status;
+                            @endphp
+
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">
                                     <i class="fas fa-flag me-1"></i> Estado de la Reserva
                                 </label>
                                 <select name="status" class="form-select form-select-lg @error('status') is-invalid @enderror">
                                     @foreach(\App\Enums\ReservationStatus::cases() as $st)
-                                        <option value="{{ $st->value }}" {{ old('status', $reservation->status->value) == $st->value ? 'selected' : '' }}>
+                                        <option value="{{ $st->value }}" {{ old('status', $currentStatusVal) == $st->value ? 'selected' : '' }}>
                                             {{ $st->label() }}
                                         </option>
                                     @endforeach
@@ -166,7 +170,7 @@
                                     $resPricingType = is_a($reservation->pricing_type, \App\Enums\PricingType::class) ? $reservation->pricing_type : (\App\Enums\PricingType::tryFrom($reservation->pricing_type) ?? \App\Enums\PricingType::PerAccommodation);
                                 @endphp
                                 <select name="pricing_type" id="pricing_type" class="form-select form-select-lg @error('pricing_type') is-invalid @enderror"
-                                    @disabled($reservation->status->value === 'checked_out' || $reservation->status->value === 'cancelled')>
+                                    @disabled($currentStatusVal === 'checked_out' || $currentStatusVal === 'cancelled')>
                                     @foreach(\App\Enums\PricingType::cases() as $pt)
                                         <option value="{{ $pt->value }}" {{ old('pricing_type', $resPricingType->value) == $pt->value ? 'selected' : '' }}>
                                             {{ $pt->label() }}
@@ -233,22 +237,16 @@
                         
                         <div class="alert alert-primary bg-primary-subtle text-primary-emphasis border-0 rounded-3 small" role="alert">
                             <i class="fa-solid fa-info-circle me-1"></i> 
-                            Si modificas fechas o alojamiento, el sistema <b>recalculará y sobrescribirá</b> los valores automáticamente al guardar.
+                            Si modificas fechas o alojamiento, el sistema <b>recalculará</b> los valores automáticamente. Si un concepto no aplica o no tiene cobro, déjalo en <b>0</b>.
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Tarifa Limpieza</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="cleaning_fee" id="cleaning_fee" value="{{ old('cleaning_fee', $reservation->cleaning_fee) }}" min="0" class="form-control">
-                            </div>
-                        </div>
+                        <input type="hidden" name="cleaning_fee" id="cleaning_fee" value="0">
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Depósito Seguridad</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="security_deposit" id="security_deposit" value="{{ old('security_deposit', $reservation->security_deposit) }}" min="0" class="form-control">
+                                <input type="number" step="100" name="security_deposit" id="security_deposit" value="{{ old('security_deposit', $reservation->security_deposit ?? 0) }}" min="0" class="form-control">
                             </div>
                         </div>
 
@@ -256,7 +254,7 @@
                             <label class="form-label small fw-bold text-muted">Descuento Aplicado</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="discount_total" id="discount_total" value="{{ old('discount_total', $reservation->discount_total) }}" min="0" class="form-control">
+                                <input type="number" step="100" name="discount_total" id="discount_total" value="{{ old('discount_total', $reservation->discount_total ?? 0) }}" min="0" class="form-control">
                             </div>
                         </div>
 
@@ -264,7 +262,7 @@
                             <label class="form-label small fw-bold text-muted">Impuestos / IVA</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="tax_total" id="tax_total" value="{{ old('tax_total', $reservation->tax_total) }}" min="0" class="form-control">
+                                <input type="number" step="100" name="tax_total" id="tax_total" value="{{ old('tax_total', $reservation->tax_total ?? 0) }}" min="0" class="form-control">
                             </div>
                         </div>
 
@@ -407,7 +405,6 @@ function calculateEstimate() {
     if(rawDpChild!==null && rawDpChild!==''){ const v=parseFloat(rawDpChild); if(!isNaN(v)) dpPricePerChild=v; }
 
     const pricingType = document.getElementById('pricing_type').value;
-    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
     const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
     const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
     const a     = parseInt(document.getElementById('adults_count').value) || 0;
@@ -442,7 +439,7 @@ function calculateEstimate() {
     }
 
     if (breakdownEl) breakdownEl.innerText = breakdown;
-    const invoiceTotal = subtotal + clean - disc + tax;
+    const invoiceTotal = subtotal - disc + tax;
     document.getElementById('total_preview_text').innerText = fmt(invoiceTotal);
 }
 
@@ -464,7 +461,7 @@ document.getElementById('accommodation_id').addEventListener('change', function(
         calculateEstimate();
     });
 });
-['cleaning_fee', 'security_deposit', 'discount_total', 'tax_total'].forEach(id => {
+['security_deposit', 'discount_total', 'tax_total'].forEach(id => {
     document.getElementById(id).addEventListener('input', calculateEstimate);
 });
 ['adults_count', 'children_count'].forEach(id => {
@@ -533,10 +530,9 @@ function applyServerEstimate(data) {
     const breakdownEl = document.getElementById('price_breakdown');
     if (!breakdownEl) return;
 
-    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
     const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
     const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
-    document.getElementById('total_preview_text').innerText = fmt(data.subtotal + clean - disc + tax);
+    document.getElementById('total_preview_text').innerText = fmt(data.subtotal - disc + tax);
 
     const snap = data.snapshot || {};
     const lines = [];
@@ -560,7 +556,7 @@ function applyServerEstimate(data) {
     breakdownEl.innerText = lines.join('\n');
 }
 
-['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'cleaning_fee', 'discount_total', 'tax_total'].forEach(id => {
+['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'discount_total', 'tax_total'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('change', triggerServerEstimate);

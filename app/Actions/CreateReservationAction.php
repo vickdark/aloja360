@@ -46,13 +46,13 @@ class CreateReservationAction
             $nightlySubtotal = $this->pricingService->calculateNightlySubtotal($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass, $adultsCount, $childrenCount);
             $rateSnapshot = $this->pricingService->generateRateSnapshot($accommodationId, $checkIn, $checkOut, $guestsCount, $data['pricing_type'] ?? null, $isDayPass, $adultsCount, $childrenCount);
             
-            // Si no se proveen valores de servicios, limpieza, depósitos, usamos 0 o defaults
+            // Si no se proveen valores de servicios, depósitos, usamos 0 o defaults
             $servicesTotal = $data['services_total'] ?? 0.0;
-            $cleaningFee = $data['cleaning_fee'] ?? 0.0;
+            $cleaningFee = 0.0;
             $taxTotal = $data['tax_total'] ?? 0.0;
             $discountTotal = $data['discount_total'] ?? 0.0;
             
-            $totalAmount = $nightlySubtotal + $servicesTotal + $cleaningFee + $taxTotal - $discountTotal;
+            $totalAmount = $nightlySubtotal + $servicesTotal + $taxTotal - $discountTotal;
 
             $reservation = Reservation::create(array_merge($data, [
                 'code' => $data['code'] ?? Str::upper(Str::random(8)),

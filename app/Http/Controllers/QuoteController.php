@@ -158,12 +158,12 @@ class QuoteController extends Controller
             $data['nightly_subtotal'] = $prices['subtotal'];
             $data['rate_snapshot'] = $prices['snapshot'];
             $data['pricing_type'] = $prices['pricing_type'];
-            $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
+            $data['cleaning_fee'] = 0;
             $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
             $data['discount_total'] = $data['discount_total'] ?? 0;
             $data['tax_total'] = $data['tax_total'] ?? 0;
-            
-            $total = $prices['subtotal'] + $data['cleaning_fee'] + $data['security_deposit'] - $data['discount_total'] + $data['tax_total'];
+
+            $total = $prices['subtotal'] + $data['security_deposit'] - $data['discount_total'] + $data['tax_total'];
             $data['total_amount'] = $total;
 
             $quote = Quote::create($data);
@@ -240,11 +240,11 @@ class QuoteController extends Controller
             $data['nightly_subtotal'] = $prices['subtotal'];
             $data['rate_snapshot'] = $prices['snapshot'];
             $data['pricing_type'] = $prices['pricing_type'];
-            $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
+            $data['cleaning_fee'] = 0;
             $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
             $data['discount_total'] = $data['discount_total'] ?? 0;
             $data['tax_total'] = $data['tax_total'] ?? 0;
-            $total = $prices['subtotal'] + $data['cleaning_fee'] + $data['security_deposit'] - $data['discount_total'] + $data['tax_total'];
+            $total = $prices['subtotal'] + $data['security_deposit'] - $data['discount_total'] + $data['tax_total'];
             $data['total_amount'] = $total;
 
             $quote->update($data);

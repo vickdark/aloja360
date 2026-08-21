@@ -458,14 +458,6 @@
                 </td>
             </tr>
             @endif
-            @if($reservation->cleaning_fee > 0)
-            <tr>
-                <td>Tarifa de Limpieza / Aseo</td>
-                <td class="text-center">1</td>
-                <td class="text-end">${{ number_format($reservation->cleaning_fee, 2) }}</td>
-                <td class="text-end">${{ number_format($reservation->cleaning_fee, 2) }}</td>
-            </tr>
-            @endif
             @if($reservation->services_total > 0)
             <tr>
                 <td>Servicios Adicionales</td>
@@ -524,7 +516,7 @@
                 <table class="totals-table">
                     <tr>
                         <td class="total-label">Subtotal:</td>
-                        <td class="total-value">${{ number_format($reservation->nightly_subtotal + $reservation->cleaning_fee + $reservation->services_total, 2) }}</td>
+                        <td class="total-value">${{ number_format($reservation->nightly_subtotal + $reservation->services_total, 2) }}</td>
                     </tr>
                     @if($reservation->discount_total > 0)
                     <tr>

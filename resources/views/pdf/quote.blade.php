@@ -442,14 +442,6 @@
                 </td>
             </tr>
             @endif
-            @if($quote->cleaning_fee > 0)
-            <tr>
-                <td>Tarifa de Limpieza / Aseo</td>
-                <td class="text-center">1</td>
-                <td class="text-end">${{ number_format($quote->cleaning_fee, 2) }}</td>
-                <td class="text-end">${{ number_format($quote->cleaning_fee, 2) }}</td>
-            </tr>
-            @endif
             @if($quote->services_total > 0)
             <tr>
                 <td>Servicios Adicionales</td>
@@ -492,7 +484,7 @@
                 <table class="totals-table">
                     <tr>
                         <td class="total-label">Subtotal:</td>
-                        <td class="total-value">${{ number_format($quote->nightly_subtotal + $quote->cleaning_fee + $quote->services_total, 2) }}</td>
+                        <td class="total-value">${{ number_format($quote->nightly_subtotal + $quote->services_total, 2) }}</td>
                     </tr>
                     @if($quote->discount_total > 0)
                     <tr>

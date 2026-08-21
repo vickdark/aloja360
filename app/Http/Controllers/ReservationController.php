@@ -274,15 +274,14 @@ class ReservationController extends Controller
                 $data['services_total'] = $data['services_total'] ?? 0;
                 $data['discount_total'] = $data['discount_total'] ?? 0;
                 $data['tax_total'] = $data['tax_total'] ?? 0;
-                $data['cleaning_fee'] = $data['cleaning_fee'] ?? $accommodation->cleaning_fee ?? 0;
+                $data['cleaning_fee'] = 0;
                 $data['security_deposit'] = $data['security_deposit'] ?? $accommodation->security_deposit ?? 0;
                 $data['rate_snapshot'] = $prices['snapshot'];
                 
                 $data['total_amount'] = $data['nightly_subtotal'] 
                     + $data['services_total'] 
                     - $data['discount_total'] 
-                    + $data['tax_total'] 
-                    + $data['cleaning_fee'];
+                    + $data['tax_total'];
             }
 
             $reservation = $action->execute($data);
@@ -383,8 +382,7 @@ class ReservationController extends Controller
                 $data['total_amount'] = $data['nightly_subtotal'] 
                     + ($data['services_total'] ?? 0) 
                     - ($data['discount_total'] ?? 0) 
-                    + ($data['tax_total'] ?? 0) 
-                    + ($data['cleaning_fee'] ?? 0);
+                    + ($data['tax_total'] ?? 0);
             }
 
             $oldStatus = $reservation->status;
@@ -393,12 +391,15 @@ class ReservationController extends Controller
             $reservation->update($data);
 
             // Si cambió el estado manualmente, guardar en histórico
-            if ($oldStatus !== $newStatus) {
+            $oldStatusVal = is_object($oldStatus) && property_exists($oldStatus, 'value') ? $oldStatus->value : (string) $oldStatus;
+            $newStatusVal = is_object($newStatus) && property_exists($newStatus, 'value') ? $newStatus->value : (string) $newStatus;
+
+            if ($oldStatusVal !== $newStatusVal) {
                 \App\Models\ReservationStatusHistory::create([
                     'reservation_id' => $reservation->id,
-                    'status' => $newStatus->value,
-                    'old_status' => $oldStatus->value,
-                    'new_status' => $newStatus->value,
+                    'status' => $newStatusVal,
+                    'old_status' => $oldStatusVal,
+                    'new_status' => $newStatusVal,
                     'changed_by' => auth()->id(),
                     'notes' => 'Cambio de estado manual desde edición de reserva.',
                 ]);

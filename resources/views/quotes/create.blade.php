@@ -178,14 +178,8 @@
                         </h4>
                     </div>
                     <div class="card-body p-4">
-                        
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Tarifa Limpieza (Manual)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" step="100" name="cleaning_fee" id="cleaning_fee" value="{{ old('cleaning_fee', 0) }}" min="0" class="form-control">
-                            </div>
-                        </div>
+                        <input type="hidden" name="cleaning_fee" id="cleaning_fee" value="0">
+
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Depósito Seguridad (Manual)</label>
@@ -356,7 +350,6 @@ function calculateEstimate() {
     // Tipo de cobro viene del select (ya sincronizado con syncPricingTypeForMode)
     const pricingType = document.getElementById('pricing_type').value;
 
-    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
     const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
     const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
     const a     = parseInt(document.getElementById('adults_count').value) || 0;
@@ -394,7 +387,7 @@ function calculateEstimate() {
 
     if (breakdownEl) breakdownEl.innerText = breakdown;
 
-    const total = subtotal + clean - disc + tax;
+    const total = subtotal - disc + tax;
     document.getElementById('total_preview_text').innerText = fmt(total);
 }
 
@@ -405,10 +398,7 @@ document.getElementById('pricing_type').addEventListener('change', function() {
 
 document.getElementById('accommodation_id').addEventListener('change', function() {
     const opt = this.options[this.selectedIndex];
-    const cleaning = opt.getAttribute('data-cleaning') || 0;
     const deposit  = opt.getAttribute('data-deposit') || 0;
-    if (document.getElementById('cleaning_fee').value == 0)
-        document.getElementById('cleaning_fee').value = cleaning;
     if (document.getElementById('security_deposit').value == 0)
         document.getElementById('security_deposit').value = deposit;
     syncPricingTypeForMode();
@@ -420,7 +410,7 @@ document.getElementById('check_in_date').addEventListener('change', function() {
     calculateEstimate();
 });
 document.getElementById('check_out_date').addEventListener('change', calculateEstimate);
-['cleaning_fee', 'security_deposit', 'discount_total', 'tax_total'].forEach(id => {
+['security_deposit', 'discount_total', 'tax_total'].forEach(id => {
     document.getElementById(id).addEventListener('input', calculateEstimate);
 });
 ['adults_count', 'children_count'].forEach(id => {
@@ -489,10 +479,9 @@ function applyServerEstimate(data) {
     const breakdownEl = document.getElementById('price_breakdown');
     if (!breakdownEl) return;
 
-    const clean = parseFloat(document.getElementById('cleaning_fee').value) || 0;
     const disc  = parseFloat(document.getElementById('discount_total').value) || 0;
     const tax   = parseFloat(document.getElementById('tax_total').value) || 0;
-    document.getElementById('total_preview_text').innerText = fmt(data.subtotal + clean - disc + tax);
+    document.getElementById('total_preview_text').innerText = fmt(data.subtotal - disc + tax);
 
     const snap = data.snapshot || {};
     const lines = [];
@@ -516,7 +505,7 @@ function applyServerEstimate(data) {
     breakdownEl.innerText = lines.join('\n');
 }
 
-['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'cleaning_fee', 'discount_total', 'tax_total'].forEach(id => {
+['accommodation_id', 'pricing_type', 'check_in_date', 'check_out_date', 'adults_count', 'children_count', 'discount_total', 'tax_total'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('change', triggerServerEstimate);

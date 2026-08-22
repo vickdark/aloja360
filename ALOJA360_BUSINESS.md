@@ -1214,6 +1214,29 @@ Un gasto puede pertenecer:
 
 No mezclar gastos con pagos de huéspedes.
 
+## Módulo Comisiones
+
+Entidad: `Commission` (tabla `commissions`).
+
+Registra comisiones por alojamiento de forma independiente (sin vincular a reservas individuales).
+
+Campos clave:
+```text
+accommodation_id   (opcional, FK accommodations)
+beneficiary_name   (nombre libre del beneficiario, no es usuario del sistema)
+amount             (decimal 14,2)
+commission_date    (fecha de la comisión)
+status             (pending | paid | cancelled — Enum CommissionStatus)
+paid_date          (fecha en que se pagó; requerida si status = paid)
+notes              (opcionales)
+```
+
+Reglas:
+- Una comisión NO se genera por reserva; se registra manualmente.
+- "Marcar pagada" establece `status = paid` y `paid_date = hoy` (acción disponible desde la tabla o el formulario).
+- Si el estado cambia fuera de `paid`, `paid_date` vuelve a null.
+- El index muestra totales por pagar y pagados.
+
 ---
 
 # 25. Ingresos

@@ -603,6 +603,9 @@ reservation.total_amount
 2026_08_20_000001  add_day_pass_fields_to_accommodations_reservations_quotes
 2026_08_20_000002  add_adjustment_fields_to_rate_periods
 2026_08_20_000003  add_child_pricing_to_accommodations (price_per_child, day_pass_price_per_child)
+2026_08_21_000001  add_cost_to_cleaning_tasks_table (cost decimal(14,2) nullable)
+2026_08_21_000002  add_assigned_name_to_cleaning_tasks_table (assigned_name varchar nullable, texto libre)
+2026_08_21_000003  create_commissions_table (accommodation_id, beneficiary_name, amount decimal(14,2), commission_date, status pending/paid/cancelled, paid_date, notes)
 ```
 
 ## PHP Enums (app/Enums)
@@ -613,6 +616,7 @@ reservation.total_amount
 - `PaymentType` → payment/refund/deposit/deposit_return
 - `PaymentMethod` → cash, bank_transfer, credit_card, nequi, daviplata, etc.
 - `CleaningTaskStatus`
+- `CommissionStatus` → pending/paid/cancelled
 - `MaintenanceRequestStatus`
 - `MaintenancePriority` → low/medium/high/critical
 - `QuoteStatus` → + `blocksAvailability()` (siempre false)

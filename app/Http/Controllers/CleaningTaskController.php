@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CleaningTask;
-use App\Models\Accommodation;
-use App\Models\Usuarios\Usuario;
 use App\Http\Requests\StoreCleaningTaskRequest;
 use App\Http\Requests\UpdateCleaningTaskRequest;
+use App\Models\Accommodation;
+use App\Models\CleaningTask;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class CleaningTaskController extends Controller
@@ -23,13 +22,14 @@ class CleaningTaskController extends Controller
             $offset = $request->get('offset', 0);
             $search = $request->get('search');
             if ($search) {
-                $query->whereHas('accommodation', function($aq) use ($search) {
+                $query->whereHas('accommodation', function ($aq) use ($search) {
                     $aq->where('name', 'like', "%{$search}%");
                 });
             }
             $total = $query->count();
             $tasks = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
-            return response()->json(['data' => $tasks, 'total' => (int)$total]);
+
+            return response()->json(['data' => $tasks, 'total' => (int) $total]);
         }
 
         return view('cleaning.index');
@@ -39,8 +39,8 @@ class CleaningTaskController extends Controller
     {
         $this->authorize('create', CleaningTask::class);
         $accommodations = Accommodation::all();
-        $users = Usuario::all(); // idealmente solo los que tienen rol de limpieza
-        return view('cleaning.create', compact('accommodations', 'users'));
+
+        return view('cleaning.create', compact('accommodations'));
     }
 
     public function store(StoreCleaningTaskRequest $request)
@@ -48,22 +48,24 @@ class CleaningTaskController extends Controller
         $this->authorize('create', CleaningTask::class);
         $data = $request->validated();
         $data['created_by'] = auth()->id();
-        
+
         CleaningTask::create($data);
+
         return redirect()->route('cleaning.index')->with('success', 'Tarea de limpieza registrada.');
     }
 
     public function show(CleaningTask $cleaning)
     {
         $this->authorize('view', $cleaning);
+
         return view('cleaning.show', compact('cleaning'));
     }
 
     public function edit(CleaningTask $cleaning)
     {
         $this->authorize('update', $cleaning);
-        $users = Usuario::all();
-        return view('cleaning.edit', compact('cleaning', 'users'));
+
+        return view('cleaning.edit', compact('cleaning'));
     }
 
     public function update(UpdateCleaningTaskRequest $request, CleaningTask $cleaning)
@@ -74,7 +76,7 @@ class CleaningTaskController extends Controller
         if ($data['status'] === 'completed' && $cleaning->status->value !== 'completed') {
             $data['completed_at'] = now();
             $data['completed_by'] = auth()->id();
-            
+
             // Si está completado, el alojamiento vuelve a estar disponible (lógica simple)
             $cleaning->accommodation->update(['status' => 'available']);
         } elseif ($data['status'] === 'in_progress' && $cleaning->status->value !== 'in_progress') {
@@ -83,6 +85,7 @@ class CleaningTaskController extends Controller
         }
 
         $cleaning->update($data);
+
         return redirect()->route('cleaning.index')->with('success', 'Tarea actualizada.');
     }
 
@@ -93,6 +96,7 @@ class CleaningTaskController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['message' => 'Tarea eliminada.']);
         }
+
         return redirect()->route('cleaning.index')->with('success', 'Tarea eliminada.');
     }
 }

@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Enums\CleaningTaskStatus;
+use App\Enums\CommissionStatus;
 use App\Enums\MaintenanceRequestStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use App\Enums\ReservationStatus;
 use App\Models\CleaningTask;
+use App\Models\Commission;
 use App\Models\Expense;
 use App\Models\MaintenanceRequest;
 use App\Models\Payment;
@@ -74,6 +76,54 @@ class ReportService
             'occupancy_rate' => $occupancyRate,
             'avg_daily_revenue' => $avgDailyRevenue,
             'days_in_period' => $daysInPeriod,
+        ];
+    }
+
+    public function getGrossSummary(string $dateFrom, string $dateTo, ?int $accommodationId = null): array
+    {
+        $dateFrom = Carbon::parse($dateFrom)->startOfDay();
+        $dateTo = Carbon::parse($dateTo)->endOfDay();
+
+        // Entrada bruta: total de reservas del período (excluye canceladas)
+        $reservationQuery = Reservation::whereBetween('check_in_date', [$dateFrom, $dateTo])
+            ->whereNotIn('status', [ReservationStatus::Cancelled]);
+
+        if ($accommodationId) {
+            $reservationQuery->where('accommodation_id', $accommodationId);
+        }
+
+        $grossRevenue = (clone $reservationQuery)->sum('total_amount');
+
+        // Gasto bruto por operación
+        $maintenanceQuery = MaintenanceRequest::whereBetween('reported_at', [$dateFrom, $dateTo])
+            ->whereNot('status', MaintenanceRequestStatus::Cancelled);
+
+        $cleaningQuery = CleaningTask::whereBetween('scheduled_at', [$dateFrom, $dateTo])
+            ->whereNot('status', CleaningTaskStatus::Cancelled);
+
+        $commissionsQuery = Commission::whereBetween('commission_date', [$dateFrom, $dateTo])
+            ->whereNot('status', CommissionStatus::Cancelled);
+
+        if ($accommodationId) {
+            $maintenanceQuery->where('accommodation_id', $accommodationId);
+            $cleaningQuery->where('accommodation_id', $accommodationId);
+            $commissionsQuery->where('accommodation_id', $accommodationId);
+        }
+
+        // Gasto real; si la solicitud aun no registra costo real, se usa el estimado
+        $maintenanceCost = (clone $maintenanceQuery)->sum(DB::raw('COALESCE(actual_cost, estimated_cost)'));
+        $cleaningCost = (clone $cleaningQuery)->sum('cost');
+        $commissionsCost = (clone $commissionsQuery)->sum('amount');
+
+        $grossExpenses = round($maintenanceCost + $cleaningCost + $commissionsCost, 2);
+
+        return [
+            'gross_revenue' => round($grossRevenue, 2),
+            'maintenance_cost' => round($maintenanceCost, 2),
+            'cleaning_cost' => round($cleaningCost, 2),
+            'commissions_cost' => round($commissionsCost, 2),
+            'gross_expenses' => $grossExpenses,
+            'net_profit' => round($grossRevenue - $grossExpenses, 2),
         ];
     }
 
@@ -246,6 +296,34 @@ class ReportService
         }
 
         return $days;
+    }
+
+    public function getPaymentsSummary(string $dateFrom, string $dateTo, ?int $accommodationId = null): array
+    {
+        $query = Payment::where('status', PaymentStatus::Confirmed)
+            ->whereIn('type', [PaymentType::Payment, PaymentType::Deposit])
+            ->whereBetween('payment_date', [$dateFrom, $dateTo]);
+
+        if ($accommodationId) {
+            $query->whereHas('reservation', fn ($q) => $q->where('accommodation_id', $accommodationId));
+        }
+
+        $byType = (clone $query)
+            ->selectRaw('type, SUM(amount) as total, COUNT(*) as count')
+            ->groupBy('type')
+            ->get()
+            ->keyBy(fn ($item) => $item->type->value);
+
+        $paymentsTotal = round((float) ($byType[PaymentType::Payment->value]->total ?? 0), 2);
+        $depositsTotal = round((float) ($byType[PaymentType::Deposit->value]->total ?? 0), 2);
+
+        return [
+            'payments_total' => $paymentsTotal,
+            'payments_count' => (int) ($byType[PaymentType::Payment->value]->count ?? 0),
+            'deposits_total' => $depositsTotal,
+            'deposits_count' => (int) ($byType[PaymentType::Deposit->value]->count ?? 0),
+            'total' => round($paymentsTotal + $depositsTotal, 2),
+        ];
     }
 
     public function getRecentTransactions(string $dateFrom, string $dateTo, ?int $accommodationId = null, int $limit = 10): array

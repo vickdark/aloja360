@@ -27,14 +27,20 @@ export function initCleaningIndex(config) {
             }},
             { id: 'assigned', name: "Asignado A", formatter: (cell, row) => {
                 const t = row.cells[row.cells.length - 1]?.data || {};
-                const u = t.assignedTo;
-                const n = u ? (u.name || (u.first_name ? (u.first_name + ' ' + u.last_name) : '')) : 'Sin asignar';
+                const n = t.assigned_name || (t.assignedTo ? (t.assignedTo.name || (t.assignedTo.first_name ? (t.assignedTo.first_name + ' ' + t.assignedTo.last_name) : '')) : '') || 'Sin asignar';
                 return DataGrid.html(`<span>${n}</span>`);
             }},
             { id: 'scheduled_at', name: "Fecha Programada", formatter: (cell, row) => {
                 const t = row.cells[row.cells.length - 1]?.data || {};
                 const d = t.scheduled_at ? new Date(t.scheduled_at).toLocaleString('es-CO', { dateStyle:'medium', timeStyle:'short' }) : 'N/A';
                 return DataGrid.html(`<span>${d}</span>`);
+            }},
+            { id: 'cost', name: "Costo", formatter: (cell, row) => {
+                const t = row.cells[row.cells.length - 1]?.data || {};
+                const c = t.cost != null ? parseFloat(t.cost) : null;
+                return DataGrid.html(c != null
+                    ? `<span class="fw-bold text-success">$${c.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
+                    : '<span class="text-muted">—</span>');
             }},
             { id: 'actions', name: "Acciones", sort: false, formatter: (cell, row) => {
                 const t = row.cells[row.cells.length - 1]?.data || {};
@@ -50,7 +56,7 @@ export function initCleaningIndex(config) {
                 return DataGrid.html(html);
             }}
         ],
-        mapData: (t) => [t, t, t, t, t, t]
+        mapData: (t) => [t, t, t, t, t, t, t]
     }).render();
 
     if (window.deleteCleaningTask === undefined) {

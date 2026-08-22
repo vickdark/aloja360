@@ -57,6 +57,7 @@
                     'payments.index'                     => ['label' => 'Pagos',              'icon' => 'fa-solid fa-money-bill-wave',   'order' => 40],
                     'expense_categories.index'           => ['label' => 'Categorías Gasto',   'icon' => 'fa-solid fa-tags',              'order' => 44],
                     'expenses.index'                     => ['label' => 'Gastos',             'icon' => 'fa-solid fa-receipt',           'order' => 45],
+                    'commissions.index'                  => ['label' => 'Comisiones',         'icon' => 'fa-solid fa-hand-holding-dollar', 'order' => 46],
                     'cleaning.index'                     => ['label' => 'Limpieza',           'icon' => 'fa-solid fa-broom',             'order' => 50],
                     'maintenance.index'                  => ['label' => 'Mantenimiento',      'icon' => 'fa-solid fa-wrench',            'order' => 55],
                     'inventory.index'                    => ['label' => 'Inventario',         'icon' => 'fa-solid fa-boxes-stacked',     'order' => 57],

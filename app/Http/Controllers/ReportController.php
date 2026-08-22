@@ -27,14 +27,18 @@ class ReportController extends Controller
 
         $report = new ReportService();
         $kpis = $report->getKPIs($dateFrom, $dateTo, $accommodationId);
+        $gross = $report->getGrossSummary($dateFrom, $dateTo, $accommodationId);
         $cleaning = $report->getCleaningSummary($dateFrom, $dateTo, $accommodationId);
         $maintenance = $report->getMaintenanceSummary($dateFrom, $dateTo, $accommodationId);
+        $paymentsSummary = $report->getPaymentsSummary($dateFrom, $dateTo, $accommodationId);
         $accommodations = Accommodation::orderBy('name')->get();
 
         return view('reports.index', compact(
             'kpis',
+            'gross',
             'cleaning',
             'maintenance',
+            'paymentsSummary',
             'dateFrom',
             'dateTo',
             'accommodationId',

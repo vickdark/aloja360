@@ -18,6 +18,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\CleaningTaskController;
 use App\Http\Controllers\MaintenanceRequestController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\CommissionController;
 
 Route::redirect('/', '/login');
 
@@ -66,6 +67,10 @@ Route::middleware('auth')->group(function () {
 
     // Gastos
     Route::resource('expenses', ExpenseController::class);
+
+    // Comisiones
+    Route::post('commissions/{commission}/mark-paid', [CommissionController::class, 'markPaid'])->name('commissions.markPaid');
+    Route::resource('commissions', CommissionController::class);
 
     // MANTENIMIENTO Y OPERACIONES (NUEVOS MODULOS)
     // Amenidades (Servicios del Alojamiento)

@@ -33,13 +33,19 @@
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted fw-bold small">RESPONSABLE</span>
                         <span class="fw-bold">
-                            {{ $cleaning->assignedTo?->first_name ?? 'Sin Asignar' }} {{ $cleaning->assignedTo?->last_name ?? '' }}
+                            {{ $cleaning->assigned_name ?? ($cleaning->assignedTo ? trim(($cleaning->assignedTo->first_name ?? '') . ' ' . ($cleaning->assignedTo->last_name ?? '')) : 'Sin Asignar') }}
                         </span>
                     </div>
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted fw-bold small">ALOJAMIENTO</span>
                         <span class="fw-bold">{{ $cleaning->accommodation->name ?? 'N/A' }}</span>
                     </div>
+                    @if($cleaning->cost !== null)
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted fw-bold small">COSTO</span>
+                        <span class="fw-bold text-success">${{ number_format($cleaning->cost, 2, ',', '.') }}</span>
+                    </div>
+                    @endif
                     @if($cleaning->quality_score)
                     <div class="d-flex justify-content-between">
                         <span class="text-muted fw-bold small">CALIDAD</span>

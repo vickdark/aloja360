@@ -62,79 +62,12 @@
         </div>
     </div>
 
-    {{-- KPI Cards --}}
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 p-md-4">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 48px; height: 48px; background: rgba(34,197,94,.12);">
-                            <i class="fa-solid fa-arrow-trend-up text-success fs-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted">Ingresos</div>
-                            <div class="fw-bold text-success text-truncate" style="font-size: 1.15rem;" title="${{ number_format($kpis['total_income'], 0, ',', '.') }}">
-                                ${{ number_format($kpis['total_income'], 0, ',', '.') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 p-md-4">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 48px; height: 48px; background: rgba(239,68,68,.12);">
-                            <i class="fa-solid fa-arrow-trend-down text-danger fs-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted">Gastos</div>
-                            <div class="fw-bold text-danger text-truncate" style="font-size: 1.15rem;" title="${{ number_format($kpis['total_expenses'], 0, ',', '.') }}">
-                                ${{ number_format($kpis['total_expenses'], 0, ',', '.') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 p-md-4">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 48px; height: 48px; background: rgba(59,130,246,.12);">
-                            <i class="fa-solid fa-scale-balanced text-primary fs-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted">Balance Neto</div>
-                            <div class="fw-bold {{ $kpis['net_balance'] >= 0 ? 'text-success' : 'text-danger' }} text-truncate" style="font-size: 1.15rem;" title="${{ number_format($kpis['net_balance'], 0, ',', '.') }}">
-                                ${{ number_format($kpis['net_balance'], 0, ',', '.') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 p-md-4">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 48px; height: 48px; background: rgba(168,85,247,.12);">
-                            <i class="fa-solid fa-calendar-check text-purple fs-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="small text-muted">Reservas</div>
-                            <div class="fw-bold text-purple text-truncate" style="font-size: 1.15rem;">
-                                {{ $kpis['total_reservations'] }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Second row KPIs --}}
+    {{-- Resumen Bruto: Entradas vs Gastos --}}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                <i class="fa-solid fa-scale-balanced text-primary me-2"></i> Resumen Bruto
+            </h6>
     <div class="row g-3 mb-4">
         <div class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
@@ -171,6 +104,67 @@
                     <div>
                         <div class="small text-muted">Noches</div>
                         <div class="fw-bold">{{ number_format($kpis['nights_count']) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Resumen Bruto: Entradas vs Gastos --}}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                <i class="fa-solid fa-scale-balanced text-primary me-2"></i> Resumen Bruto
+            </h6>
+            <div class="row g-3">
+                {{-- Entrada bruta --}}
+                <div class="col-lg-4">
+                    <div class="p-3 h-100 rounded-3 bg-success bg-opacity-10 border border-success-subtle">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fa-solid fa-arrow-trend-up text-success"></i>
+                            <span class="small text-muted fw-bold text-uppercase">Entrada Bruta (Reservas)</span>
+                        </div>
+                        <div class="fw-bold text-success" style="font-size: 1.6rem;">
+                            ${{ number_format($gross['gross_revenue'], 0, ',', '.') }}
+                        </div>
+                        <div class="small text-muted mt-1">Total contratado en reservas del período (excluye canceladas).</div>
+                    </div>
+                </div>
+
+                {{-- Gasto bruto discriminado --}}
+                <div class="col-lg-4">
+                    <div class="p-3 h-100 rounded-3 bg-danger bg-opacity-10 border border-danger-subtle">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fa-solid fa-arrow-trend-down text-danger"></i>
+                            <span class="small text-muted fw-bold text-uppercase">Gasto Bruto</span>
+                        </div>
+                        <div class="fw-bold text-danger mb-2" style="font-size: 1.6rem;">
+                            ${{ number_format($gross['gross_expenses'], 0, ',', '.') }}
+                        </div>
+                        <div class="d-flex justify-content-between small border-top pt-1">
+                            <span><i class="fa-solid fa-wrench text-warning me-1"></i> Mantenimiento</span>
+                            <span class="fw-bold">${{ number_format($gross['maintenance_cost'], 0, ',', '.') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small border-top pt-1">
+                            <span><i class="fa-solid fa-broom text-info me-1"></i> Limpiezas</span>
+                            <span class="fw-bold">${{ number_format($gross['cleaning_cost'], 0, ',', '.') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small border-top pt-1">
+                            <span><i class="fa-solid fa-hand-holding-dollar text-primary me-1"></i> Comisiones</span>
+                            <span class="fw-bold">${{ number_format($gross['commissions_cost'], 0, ',', '.') }}</span>
+                        </div>
+                        <div class="form-text mt-2 mb-0">Mantenimiento usa el costo real; si aún no está, el estimado.</div>
+                    </div>
+                </div>
+
+                {{-- Ganancia total --}}
+                <div class="col-lg-4">
+                    <div class="p-3 h-100 rounded-3 {{ $gross['net_profit'] >= 0 ? 'bg-primary bg-opacity-10 border border-primary-subtle' : 'bg-danger bg-opacity-10 border border-danger-subtle' }} d-flex flex-column justify-content-center text-center">
+                        <div class="small text-muted fw-bold text-uppercase mb-1">Ganancia Total</div>
+                        <div class="fw-bold {{ $gross['net_profit'] >= 0 ? 'text-primary' : 'text-danger' }}" style="font-size: 2rem;">
+                            ${{ number_format($gross['net_profit'], 0, ',', '.') }}
+                        </div>
+                        <div class="small text-muted">Entrada bruta − gasto bruto</div>
                     </div>
                 </div>
             </div>
@@ -335,9 +329,27 @@
     {{-- Tabla de Transacciones Recientes --}}
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-3 p-md-4">
-            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center">
-                <i class="fa-solid fa-list-ul text-primary me-2"></i> Transacciones Recientes
-            </h6>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-3 gap-3">
+                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                    <i class="fa-solid fa-list-ul text-primary me-2"></i> Transacciones Recientes
+                </h6>
+                {{-- Total Pagos (incluye depósitos) --}}
+                <div class="p-3 rounded-3 bg-success bg-opacity-10 border border-success-subtle d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 bg-success-subtle" style="width: 42px; height: 42px;">
+                        <i class="fa-solid fa-money-bill-wave text-success"></i>
+                    </div>
+                    <div>
+                        <div class="small text-muted fw-bold text-uppercase">Total Pagos (incluye depósitos)</div>
+                        <div class="fw-bold text-success" style="font-size: 1.4rem;">
+                            ${{ number_format($paymentsSummary['total'], 0, ',', '.') }}
+                        </div>
+                        <div class="small text-muted">
+                            Pagos: ${{ number_format($paymentsSummary['payments_total'], 0, ',', '.') }}
+                            &middot; Depósitos: ${{ number_format($paymentsSummary['deposits_total'], 0, ',', '.') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div id="transactionsGrid"></div>
         </div>
     </div>
@@ -406,12 +418,19 @@ function exportPDF() {
     doc.text('Generado: ' + new Date().toLocaleDateString('es-CO'), 14, 36);
 
     var kpiData = [
-        ['Ingresos', '${{ number_format($kpis["total_income"], 0, ',', ".") }}'],
-        ['Gastos', '${{ number_format($kpis["total_expenses"], 0, ',', ".") }}'],
-        ['Balance Neto', '${{ number_format($kpis["net_balance"], 0, ',', ".") }}'],
+        ['Entrada Bruta (Reservas)', '${{ number_format($gross["gross_revenue"], 0, ",", ".") }}'],
+        ['Gasto Bruto', '${{ number_format($gross["gross_expenses"], 0, ",", ".") }}'],
+        ['  - Mantenimiento', '${{ number_format($gross["maintenance_cost"], 0, ",", ".") }}'],
+        ['  - Limpiezas', '${{ number_format($gross["cleaning_cost"], 0, ",", ".") }}'],
+        ['  - Comisiones', '${{ number_format($gross["commissions_cost"], 0, ",", ".") }}'],
+        ['Ganancia Total', '${{ number_format($gross["net_profit"], 0, ",", ".") }}'],
+        ['Ingresos (Cobrados)', '${{ number_format($kpis["total_income"], 0, ",", ".") }}'],
+        ['Total Pagos (incl. depósitos)', '${{ number_format($paymentsSummary["total"], 0, ",", ".") }}'],
+        ['Gastos (Registrados)', '${{ number_format($kpis["total_expenses"], 0, ",", ".") }}'],
+        ['Balance Neto', '${{ number_format($kpis["net_balance"], 0, ",", ".") }}'],
         ['Reservas', '{{ $kpis["total_reservations"] }}'],
         ['Ocupación', '{{ $kpis["occupancy_rate"] }}%'],
-        ['Promedio Diario', '${{ number_format($kpis["avg_daily_revenue"], 0, ',', ".") }}'],
+        ['Promedio Diario', '${{ number_format($kpis["avg_daily_revenue"], 0, ",", ".") }}'],
     ];
     window.autoTable(doc, {
         startY: 42,
@@ -452,8 +471,15 @@ function exportExcel() {
 
     var kpiRows = [
         ['KPI', 'Valor'],
-        ['Ingresos', {{ $kpis["total_income"] }}],
-        ['Gastos', {{ $kpis["total_expenses"] }}],
+        ['Entrada Bruta (Reservas)', {{ $gross["gross_revenue"] }}],
+        ['Gasto Bruto', {{ $gross["gross_expenses"] }}],
+        ['  - Mantenimiento', {{ $gross["maintenance_cost"] }}],
+        ['  - Limpiezas', {{ $gross["cleaning_cost"] }}],
+        ['  - Comisiones', {{ $gross["commissions_cost"] }}],
+        ['Ganancia Total', {{ $gross["net_profit"] }}],
+        ['Ingresos (Cobrados)', {{ $kpis["total_income"] }}],
+        ['Total Pagos (incl. depósitos)', {{ $paymentsSummary["total"] }}],
+        ['Gastos (Registrados)', {{ $kpis["total_expenses"] }}],
         ['Balance Neto', {{ $kpis["net_balance"] }}],
         ['Reservas', {{ $kpis["total_reservations"] }}],
         ['Ocupación (%)', {{ $kpis["occupancy_rate"] }}],

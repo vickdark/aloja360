@@ -223,6 +223,7 @@ class SyncPermissions extends Command
             'services' => 'fa-solid fa-bell-concierge',
             'payments' => 'fa-solid fa-money-bill-wave',
             'expenses' => 'fa-solid fa-receipt',
+            'commissions' => 'fa-solid fa-hand-holding-dollar',
             'expense_categories' => 'fa-solid fa-tags',
             'cleaning' => 'fa-solid fa-broom',
             'maintenance' => 'fa-solid fa-wrench',
@@ -260,6 +261,7 @@ class SyncPermissions extends Command
             'services' => 'Reservas',
             'payments' => 'Finanzas',
             'expenses' => 'Finanzas',
+            'commissions' => 'Finanzas',
             'expense_categories' => 'Finanzas',
             'cleaning' => 'Operación',
             'maintenance' => 'Operación',
@@ -283,6 +285,7 @@ class SyncPermissions extends Command
         if (str_contains($slug, 'payments')) return 40;
         if (str_contains($slug, 'expense_categories')) return 44;
         if (str_contains($slug, 'expenses')) return 45;
+        if (str_contains($slug, 'commissions')) return 46;
         if (str_contains($slug, 'cleaning')) return 50;
         if (str_contains($slug, 'maintenance')) return 55;
         if (str_contains($slug, 'inventory')) return 57;

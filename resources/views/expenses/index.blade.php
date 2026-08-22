@@ -2,13 +2,18 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fa-solid fa-receipt text-primary me-2"></i> Gestión de Gastos
         </h1>
-        <a href="{{ route('expenses.create') }}" class="btn btn-primary">
-            <i class="fa-solid fa-plus me-1"></i> Registrar Gasto
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('expense_categories.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-tags me-1"></i> Categorías
+            </a>
+            <a href="{{ route('expenses.create') }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus me-1"></i> Registrar Gasto
+            </a>
+        </div>
     </div>
 
     @include('partials.alerts')

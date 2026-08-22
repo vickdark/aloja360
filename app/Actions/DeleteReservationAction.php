@@ -11,14 +11,14 @@ use Illuminate\Support\Facades\DB;
 class DeleteReservationAction
 {
     /**
-     * Elimina una reserva (solo permitido cuando está en estado pendiente y sin pagos confirmados).
+     * Elimina una reserva (solo permitido cuando está en estado pendiente, cancelada y sin pagos confirmados).
      *
      * @throws Exception
      */
     public function execute(Reservation $reservation): bool
     {
-        if ($reservation->status !== ReservationStatus::Pending) {
-            throw new Exception('No se puede eliminar una reserva que ya ha sido confirmada o procesada.');
+        if (!in_array($reservation->status, [ReservationStatus::Pending, ReservationStatus::Cancelled])) {
+            throw new Exception('Solo se pueden eliminar reservas en estado pendiente o canceladas.');
         }
 
         if ($reservation->confirmedPayments()->exists()) {

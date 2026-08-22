@@ -99,11 +99,13 @@ export function initReservationsIndex(config) {
                     <a href="${showUrl}" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Ver Ficha"><i class="fa-solid fa-file-invoice"></i></a>
                 `;
                 if (editable) actions += `<a href="${editUrl}" class="btn btn-sm btn-outline-warning rounded-pill px-2" title="Editar"><i class="fa-solid fa-pen-to-square"></i></a>`;
-                if (st === 'pending') {
+                if (st === 'pending' || st === 'cancelled') {
                     const guestId = r.primary_guest_id || '';
                     const total = r.total_amount || 0;
                     const paymentUrl = `${routes.paymentsCreate}?reservation_id=${id}&guest_id=${guestId}&amount=${total}`;
-                    actions += `<a href="${paymentUrl}" class="btn btn-sm btn-primary rounded-pill px-2" title="Registrar Pago y Confirmar"><i class="fa-solid fa-dollar-sign"></i></a>`;
+                    if (st === 'pending') {
+                        actions += `<a href="${paymentUrl}" class="btn btn-sm btn-primary rounded-pill px-2" title="Registrar Pago y Confirmar"><i class="fa-solid fa-dollar-sign"></i></a>`;
+                    }
                     actions += `<form class="d-inline" method="POST" action="${destroyUrl}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.')"><input type="hidden" name="_token" value="${csrf}"><input type="hidden" name="_method" value="DELETE"><button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>`;
                 }
                 if (st === 'confirmed') {

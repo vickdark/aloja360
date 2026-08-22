@@ -104,24 +104,32 @@ class ReportService
         $commissionsQuery = Commission::whereBetween('commission_date', [$dateFrom, $dateTo])
             ->whereNot('status', CommissionStatus::Cancelled);
 
+        // Gastos generales (no vinculados a mantenimiento, limpieza ni comisiones)
+        $generalExpensesQuery = Expense::whereBetween('expense_date', [$dateFrom, $dateTo])
+            ->whereNull('maintenance_request_id')
+            ->whereDoesntHave('expenseCategory', fn ($q) => $q->whereIn('slug', ['cleaning', 'maintenance']));
+
         if ($accommodationId) {
             $maintenanceQuery->where('accommodation_id', $accommodationId);
             $cleaningQuery->where('accommodation_id', $accommodationId);
             $commissionsQuery->where('accommodation_id', $accommodationId);
+            $generalExpensesQuery->where('accommodation_id', $accommodationId);
         }
 
         // Gasto real; si la solicitud aun no registra costo real, se usa el estimado
         $maintenanceCost = (clone $maintenanceQuery)->sum(DB::raw('COALESCE(actual_cost, estimated_cost)'));
         $cleaningCost = (clone $cleaningQuery)->sum('cost');
         $commissionsCost = (clone $commissionsQuery)->sum('amount');
+        $generalExpensesCost = (clone $generalExpensesQuery)->sum('amount');
 
-        $grossExpenses = round($maintenanceCost + $cleaningCost + $commissionsCost, 2);
+        $grossExpenses = round($maintenanceCost + $cleaningCost + $commissionsCost + $generalExpensesCost, 2);
 
         return [
             'gross_revenue' => round($grossRevenue, 2),
             'maintenance_cost' => round($maintenanceCost, 2),
             'cleaning_cost' => round($cleaningCost, 2),
             'commissions_cost' => round($commissionsCost, 2),
+            'general_expenses_cost' => round($generalExpensesCost, 2),
             'gross_expenses' => $grossExpenses,
             'net_profit' => round($grossRevenue - $grossExpenses, 2),
         ];
@@ -332,8 +340,13 @@ class ReportService
             ->whereBetween('payment_date', [$dateFrom, $dateTo])
             ->where('status', PaymentStatus::Confirmed);
 
+        // Solo gastos operacionales (mantenimiento, limpieza), excluye gastos generales
         $expensesQuery = Expense::with('accommodation', 'expenseCategory')
-            ->whereBetween('expense_date', [$dateFrom, $dateTo]);
+            ->whereBetween('expense_date', [$dateFrom, $dateTo])
+            ->where(function ($q) {
+                $q->whereNotNull('maintenance_request_id')
+                  ->orWhereHas('expenseCategory', fn ($sq) => $sq->whereIn('slug', ['cleaning', 'maintenance']));
+            });
 
         if ($accommodationId) {
             $paymentsQuery->whereHas('reservation', fn ($q) => $q->where('accommodation_id', $accommodationId));

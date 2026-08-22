@@ -153,6 +153,10 @@
                             <span><i class="fa-solid fa-hand-holding-dollar text-primary me-1"></i> Comisiones</span>
                             <span class="fw-bold">${{ number_format($gross['commissions_cost'], 0, ',', '.') }}</span>
                         </div>
+                        <div class="d-flex justify-content-between small border-top pt-1">
+                            <span><i class="fa-solid fa-receipt text-secondary me-1"></i> Gastos Generales</span>
+                            <span class="fw-bold">${{ number_format($gross['general_expenses_cost'], 0, ',', '.') }}</span>
+                        </div>
                         <div class="form-text mt-2 mb-0">Mantenimiento usa el costo real; si aún no está, el estimado.</div>
                     </div>
                 </div>
@@ -423,6 +427,7 @@ function exportPDF() {
         ['  - Mantenimiento', '${{ number_format($gross["maintenance_cost"], 0, ",", ".") }}'],
         ['  - Limpiezas', '${{ number_format($gross["cleaning_cost"], 0, ",", ".") }}'],
         ['  - Comisiones', '${{ number_format($gross["commissions_cost"], 0, ",", ".") }}'],
+        ['  - Gastos Generales', '${{ number_format($gross["general_expenses_cost"], 0, ",", ".") }}'],
         ['Ganancia Total', '${{ number_format($gross["net_profit"], 0, ",", ".") }}'],
         ['Ingresos (Cobrados)', '${{ number_format($kpis["total_income"], 0, ",", ".") }}'],
         ['Total Pagos (incl. depósitos)', '${{ number_format($paymentsSummary["total"], 0, ",", ".") }}'],
@@ -476,6 +481,7 @@ function exportExcel() {
         ['  - Mantenimiento', {{ $gross["maintenance_cost"] }}],
         ['  - Limpiezas', {{ $gross["cleaning_cost"] }}],
         ['  - Comisiones', {{ $gross["commissions_cost"] }}],
+        ['  - Gastos Generales', {{ $gross["general_expenses_cost"] }}],
         ['Ganancia Total', {{ $gross["net_profit"] }}],
         ['Ingresos (Cobrados)', {{ $kpis["total_income"] }}],
         ['Total Pagos (incl. depósitos)', {{ $paymentsSummary["total"] }}],

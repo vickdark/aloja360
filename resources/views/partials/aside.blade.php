@@ -26,7 +26,6 @@
                     'services.index',
                     'expense_categories.index',
                     'business.index',
-                    'expenses.index',
                     'businesses.index',
                 ];
 
@@ -102,6 +101,16 @@
                 </a>
             @endforeach
         </nav>
+
+        <style>
+            .app-sidebar-nav .nav-link {
+                padding: 0.45rem 1rem !important;
+                margin: 1px 0.5rem !important;
+            }
+            .app-sidebar-nav .nav-link i {
+                font-size: 1rem;
+            }
+        </style>
 
         <div class="app-sidebar-footer">
             @auth

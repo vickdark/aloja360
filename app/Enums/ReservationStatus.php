@@ -46,7 +46,7 @@ enum ReservationStatus: string
 
     public function canBeDeleted(): bool
     {
-        return $this === self::Pending;
+        return in_array($this, [self::Pending, self::Cancelled]);
     }
 
 }

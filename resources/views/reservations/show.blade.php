@@ -116,7 +116,7 @@
                     </button>
                 @endif
 
-                @if($status === 'pending')
+                @if(in_array($status, ['pending', 'cancelled']))
                     <form action="{{ route('reservations.destroy', $reservation) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.');">
                         @csrf
                         @method('DELETE')
